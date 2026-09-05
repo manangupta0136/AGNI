@@ -1,0 +1,184 @@
+@import "tailwindcss";
+
+@variant dark (&:where(.dark, .dark *));
+
+/* Universal Typography Constraint */
+html, body, *, ::before, ::after {
+  font-family: Helvetica, Arial, sans-serif !important;
+}
+
+/* Custom Scrollbars - MRPL Industrial Theme */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f4f5f0;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: #151819;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #cfd7c2;
+  border-radius: 3px;
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: #34422b;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #3f641c;
+}
+
+/* Base Layout */
+html, body {
+  overflow: hidden;
+  height: 100%;
+}
+
+/* ========================================== */
+/* SIDEBAR SLIDE & COLLAPSE ANIMATION        */
+/* ========================================== */
+.sidebar-animated {
+  transition: max-width 300ms cubic-bezier(0.4, 0, 0.2, 1), opacity 220ms ease, border-color 300ms ease;
+  will-change: max-width, opacity;
+  max-width: 18rem; /* 288px (w-72) */
+  opacity: 1;
+}
+
+.sidebar-animated.sidebar-closed {
+  max-width: 0rem !important;
+  opacity: 0 !important;
+  border-right-width: 0 !important;
+  border-color: transparent !important;
+  pointer-events: none !important;
+}
+
+/* Hamburger Button Hover & Active Micro-Animation */
+#sidebar-toggle-btn {
+  transition: transform 150ms ease, background-color 150ms ease;
+}
+
+#sidebar-toggle-btn:active {
+  transform: scale(0.92);
+}
+
+/* Typewriter Cursor - MRPL Green */
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+.streaming-cursor::after {
+  content: '▋';
+  display: inline-block;
+  vertical-align: baseline;
+  margin-left: 2px;
+  color: #3f641c;
+  animation: blink 0.8s infinite;
+}
+
+.dark .streaming-cursor::after {
+  color: #a8d66d;
+}
+
+/* Code block styles */
+pre code {
+  font-family: Consolas, "Courier New", Courier, monospace !important;
+  font-size: 0.825rem;
+  line-height: 1.45;
+}
+
+/* Markdown styling inside AI messages */
+.prose-ai p {
+  margin-bottom: 0.75rem;
+  line-height: 1.55;
+}
+
+.prose-ai p:last-child {
+  margin-bottom: 0;
+}
+
+.prose-ai h3 {
+  font-size: 0.95rem;
+  font-weight: 700;
+  margin-top: 1rem;
+  margin-bottom: 0.5rem;
+  color: #3f641c;
+  border-bottom: 1.5px solid #d6ddc9;
+  padding-bottom: 0.25rem;
+}
+
+.dark .prose-ai h3 {
+  color: #a8d66d;
+  border-bottom-color: #34422b;
+}
+
+.prose-ai ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-ai ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-bottom: 0.75rem;
+}
+
+.prose-ai li {
+  margin-bottom: 0.25rem;
+}
+
+.prose-ai table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.8rem;
+}
+
+.prose-ai th, .prose-ai td {
+  border: 1px solid #d6ddc9;
+  padding: 0.5rem;
+  text-align: left;
+}
+
+.dark .prose-ai th, .dark .prose-ai td {
+  border-color: #34422b;
+}
+
+.prose-ai th {
+  background-color: #eef5e5;
+  color: #20251d;
+  font-weight: 700;
+  text-transform: uppercase;
+  font-size: 0.7rem;
+  letter-spacing: 0.025em;
+}
+
+.dark .prose-ai th {
+  background-color: #1f2b18;
+  color: #a8d66d;
+}
+
+.prose-ai blockquote {
+  border-left: 3px solid #3f641c;
+  padding-left: 0.75rem;
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+  background-color: #eef5e5;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+  border-radius: 0 4px 4px 0;
+}
+
+.dark .prose-ai blockquote {
+  border-left-color: #a8d66d;
+  background-color: #1f2b18;
+}

@@ -1,0 +1,9 @@
+| Software             | Requirement                                             |
+| -------------------- | ------------------------------------------------------- |
+| **Operating System** | Windows 10 / 11 (64-bit)                                |
+| **Electron**         | Required for running the desktop application            |
+| **Node.js**          | Required if running the application from source code    |
+| **npm**              | Required for installing project dependencies            |
+| **Git**              | Required for downloading or updating the source code    |
+| **Backend API**      | Required for backend-dependent features                 |
+| **Local Network**    | Required to communicate with the backend, if applicable |

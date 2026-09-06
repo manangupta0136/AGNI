@@ -1,7 +1,0 @@
-# ── AGNI Backend Python Dependencies ──
-fastapi
-uvicorn[standard]
-pydantic
-httpx
-requests
-python-multipart

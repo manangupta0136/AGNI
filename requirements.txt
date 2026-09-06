@@ -1,0 +1,41 @@
+#Rekha
+fastapi>=0.110.0
+uvicorn[standard]>=0.28.0
+pydantic>=2.6.0
+httpx>=0.27.0
+python-multipart>=0.0.9
+
+#nancy
+fastapi
+uvicorn
+pydantic
+requests
+python-multipart
+
+#vansh
+### 1. Software Requirements
+
+#### For Running the Application from Source Code
+
+| Software | Requirement |
+|---|---|
+| Node.js | LTS version |
+| npm | Included with Node.js |
+| Electron | Version specified in `package.json` |
+| Git | Required for cloning or updating the repository |
+| Backend API | Required for backend-dependent features |
+
+#### For Development
+
+- Node.js (LTS)
+- npm
+- Git
+- Electron
+- Visual Studio Code / Antigravity IDE
+
+### 2. Installation and Execution
+
+After cloning the repository, open the `FRONTEND` folder in the terminal:
+
+```powershell
+cd FRONTEND

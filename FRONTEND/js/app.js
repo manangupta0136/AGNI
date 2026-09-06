@@ -15,6 +15,13 @@
   });
 
   function initializeApp() {
+    try {
+      const { webFrame } = require('electron');
+      webFrame.setZoomFactor(1.0);
+      webFrame.setZoomLevel(0);
+    } catch (e) {
+      // Ignore if not in Electron renderer
+    }
     ui.applyTheme(state.theme);
     ui.renderModels();
     ui.renderDocuments();
@@ -197,6 +204,22 @@
     // Clear Chat Action
     const clearChatBtn = document.getElementById('clear-chat-btn');
     if (clearChatBtn) clearChatBtn.addEventListener('click', startNewChat);
+
+    // Ctrl + Mouse Wheel Zoom handling
+    window.addEventListener('wheel', (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        try {
+          const { webFrame } = require('electron');
+          const currentZoom = webFrame.getZoomFactor();
+          const delta = e.deltaY < 0 ? 0.1 : -0.1;
+          const nextZoom = Math.min(Math.max(Number((currentZoom + delta).toFixed(2)), 0.3), 3.0);
+          webFrame.setZoomFactor(nextZoom);
+        } catch (err) {
+          // Ignore if not running under Electron renderer
+        }
+      }
+    }, { passive: false });
   }
 
   async function handleFilesUploaded(fileList) {

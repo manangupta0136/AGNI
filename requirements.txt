@@ -1,33 +1,7 @@
+# ── AGNI Backend Python Dependencies ──
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
+httpx
 requests
 python-multipart
-
-
-### 1. Software Requirements
-
-#### For Running the Application from Source Code
-
-| Software | Requirement |
-|---|---|
-| Node.js | LTS version |
-| npm | Included with Node.js |
-| Electron | Version specified in `package.json` |
-| Git | Required for cloning or updating the repository |
-| Backend API | Required for backend-dependent features |
-
-#### For Development
-
-- Node.js (LTS)
-- npm
-- Git
-- Electron
-- Visual Studio Code / Antigravity IDE
-
-### 2. Installation and Execution
-
-After cloning the repository, open the `FRONTEND` folder in the terminal:
-
-```powershell
-cd FRONTEND

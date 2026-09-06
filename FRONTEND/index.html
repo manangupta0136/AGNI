@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MRPL AI WORKBENCH - Secure Enterprise AI Workspace</title>
+  
+  <!-- Compiled Tailwind CSS -->
+  <link rel="stylesheet" href="./css/output.css">
+</head>
+<body class="h-full bg-[#F4F5F0] dark:bg-[#151819] text-[#20251D] dark:text-[#E8EBDD] flex flex-col overflow-hidden antialiased select-none">
+
+  <!-- Hidden File Input for Direct Uploads -->
+  <input type="file" id="sidebar-file-input" class="hidden" multiple accept=".pdf,.docx,.xlsx,.txt,.jpg,.png,.zip" />
+
+  <!-- ========================================== -->
+  <!-- 0. TOP ENTERPRISE BRANDING BAR            -->
+  <!-- ========================================== -->
+  <header class="h-13 bg-white dark:bg-[#171B19] border-b border-[#D6DDC9] dark:border-[#2D3827] px-4 flex items-center justify-between shrink-0 z-30 shadow-2xs">
+    <div class="flex items-center space-x-3">
+      <!-- Hamburger Sidebar Toggle Button -->
+      <button 
+        id="sidebar-toggle-btn"
+        type="button"
+        class="p-1.5 rounded-md text-[#20251D] dark:text-[#E8EBDD] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] border border-[#D6DDC9] dark:border-[#34422B] cursor-pointer transition-colors flex items-center justify-center"
+        title="Toggle Sidebar Menu"
+      >
+        <svg class="w-4 h-4 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+        </svg>
+      </button>
+
+      <!-- MRPL Enterprise Logo Badge (Official Industrial Mark) -->
+      <div class="w-8 h-8 bg-[#3F641C] dark:bg-[#3F641C] border border-[#2D4913] rounded text-white flex flex-col items-center justify-center font-bold text-[9px] leading-tight shrink-0 shadow-2xs">
+        <span class="tracking-widest">MRPL</span>
+        <span class="text-[7px] text-[#A8D66D]">AI</span>
+      </div>
+
+      <div>
+        <div class="flex items-center space-x-2">
+          <h1 class="text-sm font-bold text-[#20251D] dark:text-[#E8EBDD] tracking-tight leading-none">
+            MRPL AI WORKBENCH
+          </h1>
+          <span class="text-[10px] font-semibold bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] px-2 py-0.5 rounded">
+            v1.0 Enterprise
+          </span>
+        </div>
+        <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6] mt-0.5">
+          Secure Enterprise AI Workspace
+        </p>
+      </div>
+    </div>
+
+    <!-- Right Header Security & Actions -->
+    <div class="flex items-center space-x-2.5">
+      <span class="inline-flex items-center space-x-1.5 bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] px-2.5 py-1 rounded text-xs font-medium">
+        <span class="w-2 h-2 rounded-full bg-[#3F641C] dark:bg-[#88B83E]"></span>
+        <span>On-Premise PSU Network</span>
+      </span>
+
+      <span class="hidden sm:inline-block text-[#D6DDC9] dark:text-[#34422B]">|</span>
+
+      <button 
+        id="context-drawer-toggle"
+        type="button"
+        class="px-2.5 py-1.5 border border-[#D6DDC9] dark:border-[#34422B] bg-white dark:bg-[#1C201E] text-[#20251D] dark:text-[#E8EBDD] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] rounded text-xs font-medium cursor-pointer transition-colors shadow-2xs"
+        title="Toggle Document Vector Index Panel"
+      >
+        Vector Index
+      </button>
+
+      <button 
+        id="header-theme-toggle"
+        type="button"
+        class="px-2.5 py-1.5 border border-[#D6DDC9] dark:border-[#34422B] bg-white dark:bg-[#1C201E] text-[#20251D] dark:text-[#E8EBDD] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] rounded text-xs font-medium cursor-pointer flex items-center space-x-1.5 transition-colors shadow-2xs"
+        title="Toggle Light/Dark Theme"
+      >
+        <span class="theme-icon-slot"></span>
+        <span class="theme-label-slot text-xs">Dark Theme</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Application Workspace Grid -->
+  <div class="flex-1 flex overflow-hidden relative">
+
+    <!-- ========================================== -->
+    <!-- 1. COLLAPSIBLE LEFT SIDEBAR               -->
+    <!-- ========================================== -->
+    <aside 
+      id="app-sidebar" 
+      class="sidebar-animated w-72 h-full bg-white dark:bg-[#171B19] border-r border-[#D6DDC9] dark:border-[#2D3827] flex flex-col shrink-0 z-20 relative overflow-hidden"
+    >
+      <!-- Inner fixed-width wrapper to maintain slide animation integrity -->
+      <div class="w-72 min-w-[18rem] h-full flex flex-col shrink-0">
+
+        <!-- Sidebar Header -->
+        <div class="p-3 border-b border-[#D6DDC9] dark:border-[#2D3827] flex items-center justify-between bg-[#F9FAF6] dark:bg-[#1C201E]">
+          <div>
+            <h2 class="text-xs font-bold uppercase tracking-wider text-[#3F641C] dark:text-[#A8D66D]">
+              Workspace Navigation
+            </h2>
+          </div>
+        </div>
+
+        <!-- New Chat Button -->
+        <div class="p-3">
+          <button 
+            id="new-chat-btn"
+            type="button"
+            class="w-full py-2 px-3 bg-[#3F641C] hover:bg-[#304D16] text-white rounded-md text-xs font-semibold flex items-center justify-center space-x-2 shadow-sm cursor-pointer transition-colors"
+          >
+            <span>+ New Chat Session</span>
+          </button>
+        </div>
+
+        <!-- Scrollable Sidebar Sections -->
+        <div class="flex-1 overflow-y-auto px-3 space-y-5 py-1">
+
+          <!-- AI MODEL SELECTION SECTION -->
+          <div>
+            <div class="flex items-center justify-between px-1 mb-2 font-medium">
+              <span class="text-[11px] font-bold text-[#5C6654] dark:text-[#AEB5A6] uppercase tracking-wide">Specialist AI Model</span>
+              <span class="text-[10px] font-semibold text-[#3F641C] dark:text-[#A8D66D] bg-[#EEF5E5] dark:bg-[#1F2B18] px-1.5 py-0.5 rounded border border-[#C3D9AA] dark:border-[#34422B]">
+                Active Router
+              </span>
+            </div>
+            <div id="model-list-container" class="space-y-1.5">
+              <!-- Populated dynamically by ui.js -->
+            </div>
+          </div>
+
+          <!-- UPLOADED DOCUMENTS (RAG CONTEXT) SECTION -->
+          <div class="flex-1">
+            <div class="flex items-center justify-between px-1 mb-2 font-medium">
+              <span class="text-[11px] font-bold text-[#5C6654] dark:text-[#AEB5A6] uppercase tracking-wide">Document Context</span>
+              <span id="selected-docs-count" class="text-[10px] font-bold bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] px-1.5 py-0.5 rounded border border-[#C3D9AA] dark:border-[#34422B]">
+                3 Selected
+              </span>
+            </div>
+
+            <!-- Document Search & Upload Controls -->
+            <div class="space-y-2 mb-2.5">
+              <div class="relative">
+                <input 
+                  id="doc-search-input"
+                  type="text" 
+                  placeholder="Search documents..." 
+                  class="w-full pl-2.5 pr-2.5 py-1.5 bg-[#F9FAF6] dark:bg-[#1C201E] border border-[#D6DDC9] dark:border-[#34422B] rounded-md text-xs text-[#20251D] dark:text-[#E8EBDD] placeholder-[#8A9581] focus:outline-none focus:ring-1 focus:ring-[#3F641C] focus:border-[#3F641C]"
+                />
+              </div>
+              <button 
+                id="upload-doc-btn"
+                type="button"
+                class="w-full py-2 px-2.5 bg-[#EEF5E5] hover:bg-[#E2EDD6] dark:bg-[#1F2B18] dark:hover:bg-[#28381F] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] rounded-md text-xs font-semibold cursor-pointer flex items-center justify-center space-x-1.5 transition-colors shadow-2xs"
+              >
+                <span>+ Upload Document</span>
+              </button>
+            </div>
+
+            <!-- Document List Container -->
+            <div id="document-list-container" class="space-y-1.5 max-h-72 overflow-y-auto pr-0.5">
+              <!-- Populated dynamically by ui.js -->
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Sidebar Footer Area -->
+        <div class="p-3 border-t border-[#D6DDC9] dark:border-[#2D3827] space-y-2 bg-[#F9FAF6] dark:bg-[#1C201E]">
+          <div class="flex items-center justify-between text-xs">
+            <!-- Theme Toggle -->
+            <button 
+              id="theme-toggle-btn"
+              type="button"
+              class="px-2.5 py-1.5 border border-[#D6DDC9] dark:border-[#34422B] bg-white dark:bg-[#171B19] text-[#20251D] dark:text-[#E8EBDD] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] rounded-md cursor-pointer flex items-center space-x-1.5 font-medium shadow-2xs transition-colors"
+              title="Toggle Light/Dark Theme"
+            >
+              <span class="theme-icon-slot"></span>
+              <span class="theme-label-slot text-xs">Dark Theme</span>
+            </button>
+
+            <!-- Settings Button -->
+            <button 
+              id="settings-btn"
+              type="button"
+              class="p-1.5 border border-[#D6DDC9] dark:border-[#34422B] bg-white dark:bg-[#171B19] text-[#20251D] dark:text-[#E8EBDD] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] rounded-md cursor-pointer shadow-2xs transition-colors"
+              title="Application Settings"
+            >
+              ⚙️
+            </button>
+          </div>
+
+          <!-- User Profile Information -->
+          <div class="pt-1.5 border-t border-[#D6DDC9] dark:border-[#2D3827] flex items-center justify-between text-[11px]">
+            <div class="flex items-center space-x-2 truncate">
+              <div class="w-5 h-5 rounded-full bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] flex items-center justify-center font-bold text-[9px] shrink-0">
+                RE
+              </div>
+              <div class="truncate">
+                <p class="font-semibold text-[#20251D] dark:text-[#E8EBDD] truncate">Refinery Engineer</p>
+                <p class="text-[#5C6654] dark:text-[#AEB5A6] truncate">Unit-4 Asset Integrity</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </aside>
+
+    <!-- ========================================== -->
+    <!-- 2. MAIN CHAT WORKSPACE                     -->
+    <!-- ========================================== -->
+    <main id="main-workspace" class="flex-1 flex flex-col h-full min-w-0 bg-[#F4F5F0] dark:bg-[#151819] relative overflow-hidden">
+
+      <!-- Workspace Sub-Header Bar -->
+      <header class="h-11 bg-white dark:bg-[#171B19] border-b border-[#D6DDC9] dark:border-[#2D3827] px-4 flex items-center justify-between shrink-0 text-xs shadow-2xs">
+        <div class="flex items-center space-x-3 min-w-0">
+          <button 
+            id="header-new-chat-btn" 
+            type="button" 
+            class="px-2.5 py-1 bg-[#3F641C] hover:bg-[#304D16] text-white rounded text-xs font-semibold cursor-pointer transition-colors shadow-2xs"
+          >
+            + New
+          </button>
+
+          <span id="current-chat-title" class="font-bold text-[#20251D] dark:text-[#E8EBDD] truncate text-xs">
+            Refinery Maintenance & Safety Audit
+          </span>
+
+          <span class="bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] px-2 py-0.5 rounded text-[11px] font-medium hidden sm:inline-block">
+            Model: <span id="header-active-model-name">Engineering Intelligence</span>
+          </span>
+        </div>
+
+        <div class="flex items-center space-x-2 shrink-0">
+          <button 
+            id="clear-chat-btn"
+            type="button"
+            class="px-2.5 py-1 border border-[#D6DDC9] dark:border-[#34422B] bg-[#F9FAF6] dark:bg-[#1C201E] text-[#20251D] dark:text-[#E8EBDD] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] rounded text-xs font-medium cursor-pointer transition-colors"
+          >
+            Clear Messages
+          </button>
+        </div>
+      </header>
+
+      <!-- Scrollable Chat Messages Viewport -->
+      <div id="chat-scroll-viewport" class="flex-1 overflow-y-auto p-4 space-y-4">
+
+        <!-- INDUSTRIAL ENTERPRISE EMPTY STATE -->
+        <div id="welcome-empty-state" class="max-w-2xl mx-auto py-8">
+          <div class="bg-white dark:bg-[#1C201E] border border-[#D6DDC9] dark:border-[#2D3827] rounded-lg p-6 shadow-xs">
+            <div class="border-b border-[#EAEFE2] dark:border-[#2D3827] pb-3 mb-4 flex items-center justify-between">
+              <div class="flex items-center space-x-2.5">
+                <div class="w-7 h-7 rounded bg-[#3F641C] text-white flex items-center justify-center text-xs font-bold shrink-0 border border-[#2D4913]">
+                  AI
+                </div>
+                <h3 class="text-sm font-bold text-[#20251D] dark:text-[#A8D66D]">
+                  How can I assist you today?
+                </h3>
+              </div>
+              <span class="bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] text-[10px] font-semibold px-2 py-0.5 rounded border border-[#C3D9AA] dark:border-[#34422B]">
+                OFFLINE AIR-GAPPED
+              </span>
+            </div>
+
+            <p class="text-xs text-[#5C6654] dark:text-[#AEB5A6] leading-relaxed mb-5">
+              Ask questions, review internal documents, or generate structured insights using your secure MRPL knowledge workspace. All operations execute strictly on internal PSU servers.
+            </p>
+
+            <div class="text-[11px] font-bold uppercase tracking-wider text-[#3F641C] dark:text-[#A8D66D] mb-3">
+              Suggested Enterprise Queries:
+            </div>
+
+            <!-- Prompt Suggestions Grid -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-left">
+              <button 
+                type="button"
+                class="prompt-suggestion-card p-3 bg-[#F9FAF6] dark:bg-[#171B19] hover:bg-[#EEF5E5]/70 dark:hover:bg-[#1F2B18]/70 border border-[#D6DDC9] dark:border-[#34422B] hover:border-[#3F641C] dark:hover:border-[#88B83E] rounded-md text-xs text-left cursor-pointer transition-all shadow-2xs group"
+                data-prompt="Summarize the selected inspection report"
+              >
+                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Summarize Inspection Report</strong>
+                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Summarize the selected inspection report”</p>
+              </button>
+
+              <button 
+                type="button"
+                class="prompt-suggestion-card p-3 bg-[#F9FAF6] dark:bg-[#171B19] hover:bg-[#EEF5E5]/70 dark:hover:bg-[#1F2B18]/70 border border-[#D6DDC9] dark:border-[#34422B] hover:border-[#3F641C] dark:hover:border-[#88B83E] rounded-md text-xs text-left cursor-pointer transition-all shadow-2xs group"
+                data-prompt="Find safety requirements in this document"
+              >
+                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Safety Compliance Audit</strong>
+                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Find safety requirements in this document”</p>
+              </button>
+
+              <button 
+                type="button"
+                class="prompt-suggestion-card p-3 bg-[#F9FAF6] dark:bg-[#171B19] hover:bg-[#EEF5E5]/70 dark:hover:bg-[#1F2B18]/70 border border-[#D6DDC9] dark:border-[#34422B] hover:border-[#3F641C] dark:hover:border-[#88B83E] rounded-md text-xs text-left cursor-pointer transition-all shadow-2xs group"
+                data-prompt="Compare two uploaded reports"
+              >
+                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Comparative Document Review</strong>
+                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Compare two uploaded reports”</p>
+              </button>
+
+              <button 
+                type="button"
+                class="prompt-suggestion-card p-3 bg-[#F9FAF6] dark:bg-[#171B19] hover:bg-[#EEF5E5]/70 dark:hover:bg-[#1F2B18]/70 border border-[#D6DDC9] dark:border-[#34422B] hover:border-[#3F641C] dark:hover:border-[#88B83E] rounded-md text-xs text-left cursor-pointer transition-all shadow-2xs group"
+                data-prompt="Explain this engineering procedure"
+              >
+                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Engineering Procedure SOP</strong>
+                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Explain this engineering procedure”</p>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACTIVE CHAT MESSAGES CONTAINER -->
+        <div id="chat-messages-container" class="max-w-3xl mx-auto hidden">
+          <!-- Populated dynamically by ui.js -->
+        </div>
+
+      </div>
+
+      <!-- Fixed Bottom Chat Composer -->
+      <div class="p-3 bg-white dark:bg-[#171B19] border-t border-[#D6DDC9] dark:border-[#2D3827] shrink-0">
+        <div class="max-w-3xl mx-auto space-y-2">
+
+          <!-- Attached Document Context Chips -->
+          <div id="attached-context-chips" class="flex flex-wrap items-center gap-1.5 min-h-[26px]">
+            <!-- Populated dynamically by ui.js -->
+          </div>
+
+          <!-- Composer Form -->
+          <form id="chat-composer-form" class="border border-[#D6DDC9] dark:border-[#34422B] bg-[#F9FAF6] dark:bg-[#1C201E] rounded-lg p-2.5 focus-within:ring-1 focus-within:ring-[#3F641C] focus-within:border-[#3F641C] transition-all shadow-2xs">
+            <textarea 
+              id="user-input-textarea"
+              rows="2"
+              placeholder="Ask MRPL AI WORKBENCH about your documents…"
+              class="w-full bg-transparent text-xs text-[#20251D] dark:text-[#E8EBDD] placeholder-[#8A9581] focus:outline-none resize-none"
+            ></textarea>
+
+            <div class="flex items-center justify-between pt-2 border-t border-[#D6DDC9]/70 dark:border-[#2D3827] mt-1">
+              <span class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6] font-mono">
+                Enter to send • Shift + Enter for new line
+              </span>
+
+              <div class="flex items-center space-x-2">
+                <button 
+                  id="stop-generation-btn"
+                  type="button"
+                  class="py-1 px-3 bg-red-700 hover:bg-red-800 text-white rounded text-xs font-semibold cursor-pointer hidden shadow-2xs transition-colors"
+                >
+                  Stop Generation
+                </button>
+
+                <button 
+                  id="send-message-btn"
+                  type="submit"
+                  disabled
+                  class="py-1 px-3.5 bg-[#3F641C] hover:bg-[#304D16] disabled:opacity-40 disabled:hover:bg-[#3F641C] text-white rounded text-xs font-semibold cursor-pointer transition-colors shadow-2xs"
+                >
+                  Send Query
+                </button>
+              </div>
+            </div>
+          </form>
+
+          <p class="text-[10px] text-center text-[#5C6654] dark:text-[#AEB5A6]">
+            Mangalore Refinery and Petrochemicals Limited • Confidential Internal Knowledge Workbench
+          </p>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- ========================================== -->
+    <!-- 3. RIGHT CONTEXT DRAWER                    -->
+    <!-- ========================================== -->
+    <section 
+      id="right-context-drawer" 
+      class="w-80 bg-white dark:bg-[#171B19] border-l border-[#D6DDC9] dark:border-[#2D3827] flex flex-col transition-all duration-200 shrink-0 absolute right-0 top-0 bottom-0 z-30 shadow-lg transform translate-x-full"
+    >
+      <div class="p-3 border-b border-[#D6DDC9] dark:border-[#2D3827] flex items-center justify-between bg-[#F9FAF6] dark:bg-[#1C201E]">
+        <h3 class="text-xs font-bold uppercase text-[#3F641C] dark:text-[#A8D66D]">
+          ChromaDB Vector Index
+        </h3>
+        <button 
+          id="close-drawer-btn" 
+          type="button" 
+          class="px-2 py-0.5 bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] rounded font-bold text-xs hover:bg-[#E2EDD6] cursor-pointer"
+        >
+          ✕
+        </button>
+      </div>
+
+      <div class="p-3 flex-1 overflow-y-auto space-y-3">
+        <div>
+          <h4 class="text-[11px] font-bold uppercase text-[#5C6654] dark:text-[#AEB5A6] mb-2">Active Context Documents</h4>
+          <div id="drawer-active-docs-list" class="space-y-2">
+            <!-- Populated dynamically by ui.js -->
+          </div>
+        </div>
+
+        <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded-md text-xs">
+          <h5 class="font-bold text-[#3F641C] dark:text-[#A8D66D] mb-1">Local ChromaDB Metrics</h5>
+          <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6]">
+            Local vector database active: 3,420 document chunks embedded on-premise with sentence-transformers.
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- 4. UPLOAD DOCUMENT MODAL                   -->
+    <!-- ========================================== -->
+    <div id="upload-modal" class="fixed inset-0 bg-[#151819]/60 backdrop-blur-2xs flex items-center justify-center z-50 hidden">
+      <div class="bg-white dark:bg-[#171B19] border border-[#D6DDC9] dark:border-[#34422B] rounded-lg p-5 w-full max-w-md shadow-xl space-y-4">
+        <div class="flex items-center justify-between border-b border-[#EAEFE2] dark:border-[#2D3827] pb-2">
+          <h3 class="text-xs font-bold text-[#20251D] dark:text-[#E8EBDD] uppercase">Upload Confidential Document</h3>
+          <button id="close-upload-modal" type="button" class="font-bold text-xs text-[#5C6654] hover:text-[#20251D] dark:hover:text-[#E8EBDD] cursor-pointer">✕</button>
+        </div>
+        
+        <p class="text-xs text-[#5C6654] dark:text-[#AEB5A6]">
+          Select PDF, DOCX, or XLSX document files for offline OCR and vector indexing.
+        </p>
+
+        <div id="upload-dropzone" class="border-2 border-dashed border-[#D6DDC9] dark:border-[#34422B] rounded-md p-6 text-center cursor-pointer bg-[#F9FAF6] dark:bg-[#1C201E] hover:border-[#3F641C] transition-colors">
+          <p class="text-xs font-semibold text-[#20251D] dark:text-[#E8EBDD]">Click to select file or drag & drop</p>
+          <p class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6] mt-1">Supports PDF, DOCX, XLSX, ZIP</p>
+          <input type="file" id="modal-file-input" class="hidden" multiple accept=".pdf,.docx,.xlsx,.txt,.jpg,.png,.zip" />
+        </div>
+
+        <div class="flex justify-end space-x-2 pt-2">
+          <button id="cancel-upload-btn" type="button" class="px-3 py-1 text-xs border border-[#D6DDC9] dark:border-[#34422B] bg-[#F9FAF6] dark:bg-[#1C201E] rounded cursor-pointer text-[#20251D] dark:text-[#E8EBDD]">Cancel</button>
+          <button id="confirm-upload-btn" type="button" class="px-4 py-1 text-xs bg-[#3F641C] hover:bg-[#304D16] text-white font-semibold rounded cursor-pointer">Index File</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================================== -->
+    <!-- 5. APPLICATION SETTINGS MODAL              -->
+    <!-- ========================================== -->
+    <div id="settings-modal" class="fixed inset-0 bg-[#151819]/60 backdrop-blur-2xs flex items-center justify-center z-50 hidden">
+      <div class="bg-white dark:bg-[#171B19] border border-[#D6DDC9] dark:border-[#34422B] rounded-lg p-5 w-full max-w-md shadow-xl space-y-4">
+        <div class="flex items-center justify-between border-b border-[#EAEFE2] dark:border-[#2D3827] pb-2">
+          <h3 class="text-xs font-bold text-[#20251D] dark:text-[#E8EBDD] uppercase">FastAPI Backend Settings</h3>
+          <button id="close-settings-modal" type="button" class="font-bold text-xs text-[#5C6654] hover:text-[#20251D] dark:hover:text-[#E8EBDD] cursor-pointer">✕</button>
+        </div>
+        
+        <div class="space-y-3 text-xs">
+          <div>
+            <label class="block text-[11px] font-semibold text-[#5C6654] dark:text-[#AEB5A6] mb-1">FastAPI Service URL</label>
+            <input type="text" value="http://127.0.0.1:8000/api/v1" class="w-full px-2.5 py-1.5 bg-[#F9FAF6] dark:bg-[#1C201E] border border-[#D6DDC9] dark:border-[#34422B] rounded text-xs font-mono text-[#20251D] dark:text-[#E8EBDD]" readonly />
+          </div>
+
+          <div>
+            <label class="block text-[11px] font-semibold text-[#5C6654] dark:text-[#AEB5A6] mb-1">Ollama Engine Status</label>
+            <div class="p-2 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-[11px] text-[#3F641C] dark:text-[#A8D66D] font-mono">
+              Ready for backend integration (llama3.1:8b, qwen2.5-coder:7b, qwen2-vl:7b)
+            </div>
+          </div>
+        </div>
+
+        <div class="flex justify-end pt-2">
+          <button onclick="document.getElementById('settings-modal').classList.add('hidden')" type="button" class="px-4 py-1 text-xs bg-[#3F641C] hover:bg-[#304D16] text-white font-semibold rounded cursor-pointer">Close</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- Application Modules -->
+  <script src="./js/config.js"></script>
+  <script src="./js/mockData.js"></script>
+  <script src="./js/state.js"></script>
+  <script src="./js/api.js"></script>
+  <script src="./js/ui.js"></script>
+  <script src="./js/app.js"></script>
+
+</body>
+</html>

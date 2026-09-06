@@ -86,6 +86,19 @@ const api = {
       status: 'success',
       download_url: '/api/v1/downloads/MRPL_Report.docx'
     };
+  },
+
+  /**
+   * Transcribe recorded audio blob via backend Whisper / STT model
+   * Future endpoint: POST /api/v1/voice/transcribe
+   */
+  async transcribeAudio(audioBlob) {
+    console.log('[API Placeholder] POST /api/v1/voice/transcribe (Blob size:', audioBlob ? audioBlob.size : 0, 'bytes)');
+    await new Promise(resolve => setTimeout(resolve, 500));
+    return {
+      status: 'success',
+      text: 'Summarize the latest unit inspection and safety compliance report.'
+    };
   }
 };
 

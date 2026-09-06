@@ -2,3 +2,5 @@ __pycache__/
 *.pyc
 vision_uploads/
 BACKEND/data/
+node_modules/
+FRONTEND/node_modules/

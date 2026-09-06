@@ -92,6 +92,43 @@
       stopBtn.addEventListener('click', stopStreaming);
     }
 
+    // Voice Assistant Control Wiring
+    const voiceBtn = document.getElementById('voice-assistant-btn');
+    if (window.voiceAssistant) {
+      if (voiceBtn) {
+        voiceBtn.addEventListener('click', () => {
+          if (!window.voiceAssistant.isSupported()) {
+            ui.showToast('Voice input is not supported in this environment.');
+            ui.setVoiceAssistantState('error');
+            return;
+          }
+          window.voiceAssistant.toggle();
+        });
+      }
+
+      window.voiceAssistant.onRecordingStart(() => {
+        ui.setVoiceAssistantState('recording');
+      });
+
+      window.voiceAssistant.onRecordingStop(() => {
+        ui.setVoiceAssistantState('idle');
+      });
+
+      window.voiceAssistant.onTranscript(({ text }) => {
+        if (userInput) {
+          userInput.value = text;
+          userInput.style.height = 'auto';
+          userInput.style.height = Math.min(userInput.scrollHeight, 180) + 'px';
+          updateSendButtonState();
+        }
+      });
+
+      window.voiceAssistant.onError(({ message }) => {
+        ui.setVoiceAssistantState('idle');
+        ui.showToast(message || 'Voice input error');
+      });
+    }
+
     // Document Search Filter Input
     const docSearchInput = document.getElementById('doc-search-input');
     if (docSearchInput) {
@@ -277,6 +314,10 @@
   }
 
   async function handleSendMessage() {
+    if (window.voiceAssistant && window.voiceAssistant.isRecording) {
+      window.voiceAssistant.stop();
+    }
+
     const userInput = document.getElementById('user-input-textarea');
     if (!userInput) return;
 

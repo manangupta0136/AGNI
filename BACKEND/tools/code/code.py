@@ -30,7 +30,7 @@ import tempfile
 from pathlib import Path
 from typing import Dict
 
-from code_tools.code_prompt import (
+from .code_prompt import (
     SYSTEM_PROMPT,
     build_code_prompt,
     extract_code_block,

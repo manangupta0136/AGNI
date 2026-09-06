@@ -1,3 +1,9 @@
+#Vishal
+numpy
+scipy
+matplotlib
+pandas
+
 #Rekha
 fastapi>=0.110.0
 uvicorn[standard]>=0.28.0

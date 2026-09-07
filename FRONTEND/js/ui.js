@@ -26,7 +26,10 @@ const ui = {
     copy: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>`,
     refresh: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>`,
     thumbUp: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>`,
-    thumbDown: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"/></svg>`
+    thumbDown: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"/></svg>`,
+    mic: `<svg class="w-3.5 h-3.5 shrink-0 text-[#3F641C] dark:text-[#A8D66D]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>`,
+    micActive: `<svg class="w-3.5 h-3.5 text-red-600 dark:text-red-400 animate-pulse shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3a1 1 0 10-2 0 5 5 0 01-10 0 1 1 0 10-2 0 7 7 0 006 6.92V20H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.08A7 7 0 0017 11z"/></svg>`,
+    micOff: `<svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"/></svg>`
   },
 
   applyTheme(theme) {
@@ -372,6 +375,44 @@ const ui = {
     setTimeout(() => {
       toast.remove();
     }, 2200);
+  },
+
+  setVoiceAssistantState(state) {
+    const micBtn = document.getElementById('voice-assistant-btn');
+    const statusBadge = document.getElementById('voice-status-indicator');
+
+    if (!micBtn) return;
+
+    if (state === 'recording') {
+      micBtn.innerHTML = this.icons.micActive;
+      micBtn.title = 'Listening... Click to stop voice input';
+      micBtn.ariaLabel = 'Stop voice input';
+      micBtn.classList.add('bg-red-100', 'dark:bg-red-950/60', 'border-red-400', 'dark:border-red-700');
+      micBtn.classList.remove('hover:bg-[#EEF5E5]', 'dark:hover:bg-[#1F2B18]');
+
+      if (statusBadge) {
+        statusBadge.classList.remove('hidden');
+      }
+    } else if (state === 'error') {
+      micBtn.innerHTML = this.icons.micOff;
+      micBtn.title = 'Voice input unavailable or permission denied';
+      micBtn.ariaLabel = 'Voice input unavailable';
+      micBtn.classList.remove('bg-red-100', 'dark:bg-red-950/60', 'border-red-400', 'dark:border-red-700');
+      
+      if (statusBadge) {
+        statusBadge.classList.add('hidden');
+      }
+    } else {
+      micBtn.innerHTML = this.icons.mic;
+      micBtn.title = 'Voice Assistant (Click to start speech input)';
+      micBtn.ariaLabel = 'Start voice input';
+      micBtn.classList.remove('bg-red-100', 'dark:bg-red-950/60', 'border-red-400', 'dark:border-red-700');
+      micBtn.classList.add('hover:bg-[#EEF5E5]', 'dark:hover:bg-[#1F2B18]');
+
+      if (statusBadge) {
+        statusBadge.classList.add('hidden');
+      }
+    }
   }
 };
 

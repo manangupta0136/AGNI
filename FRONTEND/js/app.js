@@ -15,6 +15,13 @@
   });
 
   function initializeApp() {
+    try {
+      const { webFrame } = require('electron');
+      webFrame.setZoomFactor(1.0);
+      webFrame.setZoomLevel(0);
+    } catch (e) {
+      // Ignore if not in Electron renderer
+    }
     ui.applyTheme(state.theme);
     ui.renderModels();
     ui.renderDocuments();
@@ -83,6 +90,43 @@
 
     if (stopBtn) {
       stopBtn.addEventListener('click', stopStreaming);
+    }
+
+    // Voice Assistant Control Wiring
+    const voiceBtn = document.getElementById('voice-assistant-btn');
+    if (window.voiceAssistant) {
+      if (voiceBtn) {
+        voiceBtn.addEventListener('click', () => {
+          if (!window.voiceAssistant.isSupported()) {
+            ui.showToast('Voice input is not supported in this environment.');
+            ui.setVoiceAssistantState('error');
+            return;
+          }
+          window.voiceAssistant.toggle();
+        });
+      }
+
+      window.voiceAssistant.onRecordingStart(() => {
+        ui.setVoiceAssistantState('recording');
+      });
+
+      window.voiceAssistant.onRecordingStop(() => {
+        ui.setVoiceAssistantState('idle');
+      });
+
+      window.voiceAssistant.onTranscript(({ text }) => {
+        if (userInput) {
+          userInput.value = text;
+          userInput.style.height = 'auto';
+          userInput.style.height = Math.min(userInput.scrollHeight, 180) + 'px';
+          updateSendButtonState();
+        }
+      });
+
+      window.voiceAssistant.onError(({ message }) => {
+        ui.setVoiceAssistantState('idle');
+        ui.showToast(message || 'Voice input error');
+      });
     }
 
     // Document Search Filter Input
@@ -197,6 +241,22 @@
     // Clear Chat Action
     const clearChatBtn = document.getElementById('clear-chat-btn');
     if (clearChatBtn) clearChatBtn.addEventListener('click', startNewChat);
+
+    // Ctrl + Mouse Wheel Zoom handling
+    window.addEventListener('wheel', (e) => {
+      if (e.ctrlKey) {
+        e.preventDefault();
+        try {
+          const { webFrame } = require('electron');
+          const currentZoom = webFrame.getZoomFactor();
+          const delta = e.deltaY < 0 ? 0.1 : -0.1;
+          const nextZoom = Math.min(Math.max(Number((currentZoom + delta).toFixed(2)), 0.3), 3.0);
+          webFrame.setZoomFactor(nextZoom);
+        } catch (err) {
+          // Ignore if not running under Electron renderer
+        }
+      }
+    }, { passive: false });
   }
 
   async function handleFilesUploaded(fileList) {
@@ -254,6 +314,10 @@
   }
 
   async function handleSendMessage() {
+    if (window.voiceAssistant && window.voiceAssistant.isRecording) {
+      window.voiceAssistant.stop();
+    }
+
     const userInput = document.getElementById('user-input-textarea');
     if (!userInput) return;
 
@@ -273,9 +337,15 @@
     state.messages.push(userMsg);
     ui.renderMessages();
 
-    // Call API placeholder to get response payload
     const requestPayload = state.buildChatRequest(text);
-    const apiResult = await api.sendMessage(requestPayload);
+    let apiResult;
+    try {
+      apiResult = await api.sendMessage(requestPayload);
+    } catch (err) {
+      console.error('[Chat] sendMessage failed:', err);
+      ui.showToast('Could not reach backend. Is the server running?');
+      return;
+    }
 
     streamAIResponse(apiResult.response_text);
   }
@@ -409,7 +479,12 @@
     };
     state.messages.push(userMsg);
     ui.renderMessages();
-    api.sendMessage(state.buildChatRequest(text)).then(res => streamAIResponse(res.response_text));
+    api.sendMessage(state.buildChatRequest(text))
+      .then(res => streamAIResponse(res.response_text))
+      .catch(err => {
+        console.error('[Chat] sendMessage failed:', err);
+        ui.showToast('Could not reach backend. Is the server running?');
+      });
   }
 
 })();

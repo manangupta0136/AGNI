@@ -1,4 +1,7 @@
 __pycache__/
 *.pyc
 vision_uploads/
-data/
+BACKEND/data/
+node_modules/
+FRONTEND/node_modules/
+BACKEND/tools/workspace/

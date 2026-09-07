@@ -50,7 +50,9 @@ const CONFIG = {
     UPLOAD_DOC: '/documents/upload',
     GET_DOCS: '/documents',
     GET_MODELS: '/models',
-    GENERATE_WORD: '/documents/generate-word'
+    GENERATE_WORD: '/documents/generate-word',
+    TRANSCRIBE: '/transcribe',
+    SPEAK: '/speak'
   }
 };
 

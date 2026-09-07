@@ -53,6 +53,35 @@ logging.basicConfig(
 )
 logger = logging.getLogger("agni.backend.main")
 
+# ── Local module wiring (brain orchestrator, voice, vision) ─────────────────
+# These are optional at import time: on a machine without Ollama / the local
+# models pulled, importing them can fail (e.g. empty prompt stubs, missing
+# local model weights). We degrade gracefully rather than take the whole API
+# down, matching the existing offline-fallback behavior in this file.
+try:
+    from brain import graph as brain_graph
+except Exception as e:  # noqa: BLE001
+    brain_graph = None
+    logger.warning("brain.py graph unavailable: %s", e)
+
+try:
+    from voice_command.stt import transcribe_audio
+except Exception as e:  # noqa: BLE001
+    transcribe_audio = None
+    logger.warning("voice_command.stt unavailable: %s", e)
+
+try:
+    from voice_command.tts import synthesize_speech
+except Exception as e:  # noqa: BLE001
+    synthesize_speech = None
+    logger.warning("voice_command.tts unavailable: %s", e)
+
+try:
+    from tools.Vision.vision_module.router import router as vision_router
+except Exception as e:  # noqa: BLE001
+    vision_router = None
+    logger.warning("Vision module router unavailable: %s", e)
+
 # ── Paths and Directories ───────────────────────────────────────────────────
 BASE_DIR = Path(__file__).resolve().parent
 DATA_DIR = BASE_DIR / "data"
@@ -269,12 +298,10 @@ async def lifespan(app: FastAPI):
             OLLAMA_BASE_URL,
         )
 
-    # Optional: Connect brain.py or ollama_client.py if modules exist
-    try:
-        import brain  # type: ignore
-        logger.info("Module 'brain.py' detected and available for integration.")
-    except Exception:
-        logger.info("Module 'brain.py' is currently a template stub. Using internal AGNI orchestrator.")
+    if brain_graph is not None:
+        logger.info("Module 'brain.py' graph loaded — orchestrator wired into /api/v1/chat.")
+    else:
+        logger.info("Module 'brain.py' graph unavailable. Falling back to internal AGNI orchestrator.")
 
     yield
 
@@ -301,6 +328,15 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# ── Vision sub-router ─────────────────────────────────────────────────────
+# tools/Vision/vision_module/router.py is designed to be mounted directly
+# (see its own docstring): app.include_router(vision_router). It exposes
+# POST /tools/vision/upload and POST /tools/vision/invoke. brain.py's
+# rerouter calls the same underlying VisionTool singleton directly for the
+# in-graph delegation path, so both paths share state.
+if vision_router is not None:
+    app.include_router(vision_router)
 
 # ── Request Tracing & Air-Gap Guard Middleware ───────────────────────────────
 @app.middleware("http")
@@ -405,7 +441,26 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
     """
     client: httpx.AsyncClient = request.app.state.http_client
     target_model = await resolve_local_model(payload.model, client)
-    
+
+    if brain_graph is not None:
+        conversation_id = payload.conversation_id or f"chat-{uuid.uuid4().hex[:8]}"
+        try:
+            result = await asyncio.to_thread(
+                brain_graph.invoke,
+                {"messages": [{"role": "user", "content": payload.message}]},
+                {"configurable": {"thread_id": conversation_id}},
+            )
+            response_text = result["messages"][-1].content
+            return ChatResponse(
+                status="success",
+                success=True,
+                conversation_id=conversation_id,
+                model_used=target_model,
+                response_text=response_text,
+            )
+        except Exception as exc:
+            logger.warning("brain graph invocation failed, falling back to raw Ollama: %s", exc)
+
     active_docs = [d["title"] for d in DOCUMENT_STORE if d.get("active")]
     doc_context = ""
     if active_docs:
@@ -441,6 +496,41 @@ async def handle_chat_stream(payload: ChatMessagePayload, request: Request):
     client: httpx.AsyncClient = request.app.state.http_client
     target_model = await resolve_local_model(payload.model, client)
 
+    if brain_graph is not None:
+        conversation_id = payload.conversation_id or "chat-stream"
+
+        async def brain_event_generator():
+            # brain.graph doesn't expose per-token streaming (LangGraph's
+            # own .stream() yields per-node state, not per-token deltas), so
+            # this wires the graph in and streams its single final response
+            # as one chunk rather than inventing new token-streaming logic.
+            try:
+                result = await asyncio.to_thread(
+                    brain_graph.invoke,
+                    {"messages": [{"role": "user", "content": payload.message}]},
+                    {"configurable": {"thread_id": conversation_id}},
+                )
+                yield result["messages"][-1].content
+            except Exception as exc:
+                logger.warning("brain graph streaming invocation failed, falling back to raw Ollama: %s", exc)
+                async for token in generate_ollama_stream(
+                    prompt=payload.message,
+                    model=target_model,
+                    client=client,
+                    system_context="",
+                ):
+                    yield token
+
+        return StreamingResponse(
+            brain_event_generator(),
+            media_type="text/plain; charset=utf-8",
+            headers={
+                "X-Model-Used": target_model,
+                "X-Conversation-ID": conversation_id,
+                "Cache-Control": "no-cache",
+            },
+        )
+
     active_docs = [d["title"] for d in DOCUMENT_STORE if d.get("active")]
     doc_context = f"Referenced Documents: {', '.join(active_docs)}" if active_docs else ""
     system_context = (
@@ -467,6 +557,40 @@ async def handle_chat_stream(payload: ChatMessagePayload, request: Request):
             "Cache-Control": "no-cache",
         },
     )
+
+@app.post("/api/v1/transcribe", tags=["Voice"])
+async def transcribe(file: UploadFile = File(...)):
+    """Speech-to-text endpoint backed by voice_command/stt.py."""
+    if transcribe_audio is None:
+        raise HTTPException(status_code=503, detail="Speech-to-text module unavailable.")
+
+    suffix = Path(file.filename or "audio.wav").suffix or ".wav"
+    tmp_path = UPLOADS_DIR / f"stt-{uuid.uuid4().hex}{suffix}"
+    contents = await file.read()
+    with open(tmp_path, "wb") as f:
+        f.write(contents)
+
+    try:
+        text = await asyncio.to_thread(transcribe_audio, str(tmp_path))
+    finally:
+        tmp_path.unlink(missing_ok=True)
+
+    return {"status": "success", "success": True, "text": text}
+
+
+@app.post("/api/v1/speak", tags=["Voice"])
+async def speak(payload: dict):
+    """Text-to-speech endpoint backed by voice_command/tts.py."""
+    if synthesize_speech is None:
+        raise HTTPException(status_code=503, detail="Text-to-speech module unavailable.")
+
+    text = payload.get("text", "")
+    if not text:
+        raise HTTPException(status_code=422, detail="'text' field is required.")
+
+    audio_bytes = await asyncio.to_thread(synthesize_speech, text)
+    return Response(content=audio_bytes, media_type="audio/wav")
+
 
 @app.get("/api/v1/documents", tags=["Documents"])
 async def get_documents():

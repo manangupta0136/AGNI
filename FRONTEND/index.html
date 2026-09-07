@@ -331,6 +331,13 @@
 
           <!-- Composer Form -->
           <form id="chat-composer-form" class="border border-[#D6DDC9] dark:border-[#34422B] bg-[#F9FAF6] dark:bg-[#1C201E] rounded-lg p-2.5 focus-within:ring-1 focus-within:ring-[#3F641C] focus-within:border-[#3F641C] transition-all shadow-2xs">
+            
+            <!-- Voice Assistant Listening Status Badge -->
+            <div id="voice-status-indicator" class="hidden items-center space-x-1.5 px-2 py-0.5 mb-1.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded text-[11px] text-red-700 dark:text-red-300 font-medium">
+              <span class="w-2 h-2 rounded-full bg-red-600 animate-ping shrink-0"></span>
+              <span>Listening... Speak into microphone</span>
+            </div>
+
             <textarea 
               id="user-input-textarea"
               rows="2"
@@ -344,6 +351,16 @@
               </span>
 
               <div class="flex items-center space-x-2">
+                <button 
+                  id="voice-assistant-btn"
+                  type="button"
+                  aria-label="Start voice input"
+                  title="Voice Assistant (Click to start speech input)"
+                  class="p-1.5 border border-[#D6DDC9] dark:border-[#34422B] bg-white dark:bg-[#1C201E] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] rounded cursor-pointer transition-colors shadow-2xs flex items-center justify-center"
+                >
+                  <svg class="w-3.5 h-3.5 shrink-0 text-[#3F641C] dark:text-[#A8D66D]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                </button>
+
                 <button 
                   id="stop-generation-btn"
                   type="button"
@@ -474,6 +491,7 @@
   <script src="./js/state.js"></script>
   <script src="./js/api.js"></script>
   <script src="./js/ui.js"></script>
+  <script src="./js/voiceAssistant.js"></script>
   <script src="./js/app.js"></script>
 
 </body>

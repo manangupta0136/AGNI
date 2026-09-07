@@ -9,31 +9,21 @@
 const api = {
   /**
    * Send a chat message payload to backend router
-   * Future endpoint: POST /chat/stream or POST /chat
+   * Endpoint: POST /api/v1/chat
    */
   async sendMessage(payload) {
-    console.log('[API Placeholder] POST /chat payload ready for FastAPI:', payload);
-    
-    // Simulate network latency for mock response lookup
-    await new Promise(resolve => setTimeout(resolve, 300));
+    const res = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.CHAT}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
 
-    let responseText = MOCK_DATA.RESPONSES.DEFAULT;
-    const lowerMsg = payload.message.toLowerCase();
-
-    if (lowerMsg.includes('report') || lowerMsg.includes('inspection') || lowerMsg.includes('piping')) {
-      responseText = MOCK_DATA.RESPONSES.INSPECTION;
-    } else if (lowerMsg.includes('safety') || lowerMsg.includes('permit') || lowerMsg.includes('oisd')) {
-      responseText = MOCK_DATA.RESPONSES.SAFETY;
-    } else if (lowerMsg.includes('vendor') || lowerMsg.includes('budget') || lowerMsg.includes('evaluation')) {
-      responseText = MOCK_DATA.RESPONSES.VENDOR;
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`Chat request failed (${res.status}): ${detail}`);
     }
 
-    return {
-      status: 'success',
-      conversation_id: payload.conversation_id,
-      model_used: payload.model,
-      response_text: responseText
-    };
+    return res.json();
   },
 
   /**
@@ -86,6 +76,48 @@ const api = {
       status: 'success',
       download_url: '/api/v1/downloads/MRPL_Report.docx'
     };
+  },
+
+  /**
+   * Transcribe recorded audio blob via backend STT model
+   * Endpoint: POST /api/v1/transcribe (multipart/form-data, field "file")
+   */
+  async transcribeAudio(audioBlob) {
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'recording.webm');
+
+    const res = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.TRANSCRIBE}`, {
+      method: 'POST',
+      body: formData
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`Transcription failed (${res.status}): ${detail}`);
+    }
+
+    return res.json();
+  },
+
+  /**
+   * Synthesize speech audio from text via backend TTS model
+   * Endpoint: POST /api/v1/speak (JSON body { text }) -> audio/wav bytes
+   * Returns a playable object URL for use in an <audio> element.
+   */
+  async synthesizeSpeech(text) {
+    const res = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.SPEAK}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text })
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`Speech synthesis failed (${res.status}): ${detail}`);
+    }
+
+    const audioBlob = await res.blob();
+    return URL.createObjectURL(audioBlob);
   }
 };
 

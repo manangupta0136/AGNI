@@ -67,3 +67,8 @@ langchain-text-splitters
 
 faster-whisper 
 piper-tts
+
+# Rashi - PDF document generation tools
+docxtpl
+openpyxl
+python-pptx

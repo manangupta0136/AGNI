@@ -29,6 +29,25 @@ class Document(Base):
         index=True,
         comment="Original filename or technical title",
     )
+    username: Mapped[Optional[str]] = mapped_column(
+        String(64),
+        ForeignKey("users.username", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="Owner username (Foreign Key for user isolation)",
+    )
+    thread_id: Mapped[Optional[str]] = mapped_column(
+        String(64),
+        ForeignKey("conversations.id", ondelete="SET NULL"),
+        nullable=True,
+        index=True,
+        comment="Associated thread/chat ID",
+    )
+    folder_path: Mapped[Optional[str]] = mapped_column(
+        String(512),
+        nullable=True,
+        comment="Folder location containing user PDFs",
+    )
     file_path: Mapped[str] = mapped_column(
         String(512),
         nullable=False,
@@ -99,6 +118,10 @@ class Document(Base):
     )
 
     # Relationships
+    user: Mapped[Optional["User"]] = relationship(
+        "User",
+        back_populates="documents",
+    )
     chunks: Mapped[List["DocumentChunk"]] = relationship(
         "DocumentChunk",
         back_populates="document",

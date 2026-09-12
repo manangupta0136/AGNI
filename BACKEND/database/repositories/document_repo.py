@@ -1,11 +1,11 @@
 """
 Document Repository for AGNI Air-Gapped Workbench.
-Handles async CRUD operations for uploaded confidential documents and RAG chunks.
+Handles async CRUD operations for uploaded confidential documents, user folders, and RAG chunks.
 """
 
 from typing import List, Optional
 from datetime import datetime, timezone
-from sqlalchemy import select, update, delete
+from sqlalchemy import select, update, delete, or_
 from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -30,8 +30,12 @@ class DocumentRepository:
         checksum_sha256: Optional[str] = None,
         qdrant_collection: str = "mrpl_knowledge_base",
         is_active: bool = True,
+        username: Optional[str] = None,
+        thread_id: Optional[str] = None,
+        folder_path: Optional[str] = None,
     ) -> Document:
-        """Create and persist a new document entry."""
+        """Create and persist a new document entry with user folder mapping."""
+        clean_user = username.strip().lower() if username else None
         doc = Document(
             id=id,
             title=title,
@@ -45,6 +49,9 @@ class DocumentRepository:
             checksum_sha256=checksum_sha256,
             qdrant_collection=qdrant_collection,
             is_active=is_active,
+            username=clean_user,
+            thread_id=thread_id,
+            folder_path=folder_path,
         )
         session.add(doc)
         await session.flush()
@@ -71,12 +78,34 @@ class DocumentRepository:
         limit: int = 100,
         offset: int = 0,
     ) -> List[Document]:
-        """List documents with optional filtering by category or active state."""
+        """List all documents."""
         stmt = select(Document)
         if category:
             stmt = stmt.where(Document.category == category)
         if active_only:
             stmt = stmt.where(Document.is_active.is_(True))
+        stmt = stmt.order_by(Document.uploaded_at.desc()).limit(limit).offset(offset)
+        result = await session.execute(stmt)
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def list_user_documents(
+        session: AsyncSession,
+        username: str,
+        include_public: bool = True,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[Document]:
+        """
+        List documents accessible to a specific user (User Privacy Isolation).
+        Includes the user's private documents and optional system-wide documents (where username is NULL).
+        """
+        clean_user = username.strip().lower()
+        stmt = select(Document)
+        if include_public:
+            stmt = stmt.where(or_(Document.username == clean_user, Document.username.is_(None)))
+        else:
+            stmt = stmt.where(Document.username == clean_user)
         stmt = stmt.order_by(Document.uploaded_at.desc()).limit(limit).offset(offset)
         result = await session.execute(stmt)
         return list(result.scalars().all())
@@ -129,10 +158,7 @@ class DocumentRepository:
         document_id: str,
         chunks_data: List[dict],
     ) -> List[DocumentChunk]:
-        """
-        Batch-insert extracted text chunks for a document.
-        chunks_data: list of dicts with keys: chunk_index, page_number, text_content, qdrant_point_id
-        """
+        """Batch-insert extracted text chunks for a document."""
         chunks = [
             DocumentChunk(
                 document_id=document_id,

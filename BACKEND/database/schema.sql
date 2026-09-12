@@ -1,16 +1,33 @@
 -- =============================================================================
 -- AGNI Air-Gapped AI Workbench — PostgreSQL Enterprise Database Schema
 -- Target: PostgreSQL 14+ / 16+
+-- Multi-User Privacy, Local Authentication, Isolated Threads & Long-Term Memory
 -- =============================================================================
 
 -- Enable UUID extension if available
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- -----------------------------------------------------------------------------
--- Table: conversations
+-- Table: users (Table 1: User Authentication & Credentials)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS users (
+    username VARCHAR(64) PRIMARY KEY,
+    password_hash VARCHAR(255) NOT NULL,
+    full_name VARCHAR(128),
+    role VARCHAR(32) NOT NULL DEFAULT 'engineer',
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
+
+COMMENT ON TABLE users IS 'Stores local engineer credentials, roles, and identity for air-gap privacy';
+
+-- -----------------------------------------------------------------------------
+-- Table: conversations (Table 2: User-Isolated Chat Threads)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS conversations (
     id VARCHAR(64) PRIMARY KEY,
+    username VARCHAR(64) REFERENCES users(username) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL DEFAULT 'New Technical Session',
     model_id VARCHAR(64) NOT NULL DEFAULT 'engineering-intelligence',
     is_archived BOOLEAN NOT NULL DEFAULT FALSE,
@@ -18,10 +35,11 @@ CREATE TABLE IF NOT EXISTS conversations (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE INDEX IF NOT EXISTS idx_conversations_username ON conversations(username);
 CREATE INDEX IF NOT EXISTS idx_conversations_updated_at ON conversations(updated_at DESC);
 CREATE INDEX IF NOT EXISTS idx_conversations_archived ON conversations(is_archived);
 
-COMMENT ON TABLE conversations IS 'Stores operator multi-turn chat sessions and active specialist model route';
+COMMENT ON TABLE conversations IS 'Stores operator multi-turn chat sessions and active specialist model route, isolated by username';
 
 -- -----------------------------------------------------------------------------
 -- Table: messages
@@ -45,10 +63,13 @@ CREATE INDEX IF NOT EXISTS idx_messages_created_at ON messages(created_at ASC);
 COMMENT ON TABLE messages IS 'Stores user prompts, AI responses, model provenance, and latency metrics';
 
 -- -----------------------------------------------------------------------------
--- Table: documents
+-- Table: documents (User-Isolated Confidential PDFs & Folder Locations)
 -- -----------------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS documents (
     id VARCHAR(64) PRIMARY KEY,
+    username VARCHAR(64) REFERENCES users(username) ON DELETE CASCADE,
+    thread_id VARCHAR(64) REFERENCES conversations(id) ON DELETE SET NULL,
+    folder_path VARCHAR(512),
     title VARCHAR(255) NOT NULL,
     file_path VARCHAR(512) NOT NULL,
     file_type VARCHAR(32) NOT NULL DEFAULT 'PDF',
@@ -64,12 +85,14 @@ CREATE TABLE IF NOT EXISTS documents (
     indexed_at TIMESTAMP WITH TIME ZONE
 );
 
+CREATE INDEX IF NOT EXISTS idx_documents_username ON documents(username);
+CREATE INDEX IF NOT EXISTS idx_documents_thread_id ON documents(thread_id);
 CREATE INDEX IF NOT EXISTS idx_documents_category ON documents(category);
 CREATE INDEX IF NOT EXISTS idx_documents_status ON documents(status);
 CREATE INDEX IF NOT EXISTS idx_documents_checksum ON documents(checksum_sha256);
 CREATE INDEX IF NOT EXISTS idx_documents_uploaded_at ON documents(uploaded_at DESC);
 
-COMMENT ON TABLE documents IS 'Tracks confidential on-premise documents indexed for RAG retrieval';
+COMMENT ON TABLE documents IS 'Tracks confidential on-premise documents indexed for RAG retrieval per user';
 
 -- -----------------------------------------------------------------------------
 -- Table: document_chunks
@@ -89,6 +112,24 @@ CREATE INDEX IF NOT EXISTS idx_document_chunks_doc_id ON document_chunks(documen
 CREATE INDEX IF NOT EXISTS idx_document_chunks_qdrant_id ON document_chunks(qdrant_point_id);
 
 COMMENT ON TABLE document_chunks IS 'Text slice boundaries mapped to Qdrant vector embedding points';
+
+-- -----------------------------------------------------------------------------
+-- Table: long_term_memories (Extra Table: Cross-Session User & Plant Memory)
+-- -----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS long_term_memories (
+    id VARCHAR(64) PRIMARY KEY,
+    username VARCHAR(64) NOT NULL REFERENCES users(username) ON DELETE CASCADE,
+    thread_id VARCHAR(64) REFERENCES conversations(id) ON DELETE SET NULL,
+    memory_type VARCHAR(64) NOT NULL DEFAULT 'preference',
+    memory_key VARCHAR(128) NOT NULL,
+    memory_content TEXT NOT NULL,
+    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX IF NOT EXISTS idx_ltm_username ON long_term_memories(username);
+CREATE INDEX IF NOT EXISTS idx_ltm_key ON long_term_memories(memory_key);
+
+COMMENT ON TABLE long_term_memories IS 'Stores cross-session user memories, plant preferences, and contextual facts';
 
 -- -----------------------------------------------------------------------------
 -- Table: audit_reports

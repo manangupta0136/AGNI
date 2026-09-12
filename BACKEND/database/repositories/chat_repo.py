@@ -1,6 +1,6 @@
 """
 Chat Repository for AGNI Air-Gapped Workbench.
-Handles async CRUD operations for conversations and multi-turn chat messages.
+Handles async CRUD operations for conversations, user-isolated threads, and messages.
 """
 
 from typing import List, Optional, Any
@@ -20,8 +20,10 @@ class ChatRepository:
         conversation_id: str,
         title: Optional[str] = None,
         model_id: str = "engineering-intelligence",
+        username: Optional[str] = None,
     ) -> Conversation:
-        """Fetch existing conversation or create a new one with given ID."""
+        """Fetch existing conversation or create a new one linked to username."""
+        clean_user = username.strip().lower() if username else None
         stmt = select(Conversation).where(Conversation.id == conversation_id)
         result = await session.execute(stmt)
         conv = result.scalar_one_or_none()
@@ -31,12 +33,20 @@ class ChatRepository:
                 id=conversation_id,
                 title=title or "New Technical Session",
                 model_id=model_id,
+                username=clean_user,
             )
             session.add(conv)
             await session.flush()
-        elif title and conv.title == "New Technical Session":
-            conv.title = title
-            await session.flush()
+        else:
+            updated = False
+            if clean_user and not conv.username:
+                conv.username = clean_user
+                updated = True
+            if title and conv.title == "New Technical Session":
+                conv.title = title
+                updated = True
+            if updated:
+                await session.flush()
 
         return conv
 
@@ -45,9 +55,15 @@ class ChatRepository:
         session: AsyncSession,
         conversation_id: str,
         load_messages: bool = True,
+        username: Optional[str] = None,
     ) -> Optional[Conversation]:
-        """Get single conversation by ID with optional eager loading of messages."""
+        """
+        Get single conversation by ID with optional eager loading of messages.
+        If username is provided, ensures user isolation (privacy check).
+        """
         stmt = select(Conversation).where(Conversation.id == conversation_id)
+        if username:
+            stmt = stmt.where(Conversation.username == username.strip().lower())
         if load_messages:
             stmt = stmt.options(selectinload(Conversation.messages))
         result = await session.execute(stmt)
@@ -60,8 +76,28 @@ class ChatRepository:
         offset: int = 0,
         include_archived: bool = False,
     ) -> List[Conversation]:
-        """List conversations ordered by most recent activity."""
+        """List all conversations ordered by most recent activity."""
         stmt = select(Conversation)
+        if not include_archived:
+            stmt = stmt.where(Conversation.is_archived.is_(False))
+        stmt = stmt.order_by(Conversation.updated_at.desc()).limit(limit).offset(offset)
+        result = await session.execute(stmt)
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def list_user_conversations(
+        session: AsyncSession,
+        username: str,
+        limit: int = 50,
+        offset: int = 0,
+        include_archived: bool = False,
+    ) -> List[Conversation]:
+        """
+        List ONLY conversations belonging to a specific user (Privacy Isolation).
+        Ensures User A cannot see User B's threads.
+        """
+        clean_user = username.strip().lower()
+        stmt = select(Conversation).where(Conversation.username == clean_user)
         if not include_archived:
             stmt = stmt.where(Conversation.is_archived.is_(False))
         stmt = stmt.order_by(Conversation.updated_at.desc()).limit(limit).offset(offset)
@@ -119,15 +155,17 @@ class ChatRepository:
         tokens_completion: int = 0,
         latency_ms: float = 0.0,
         tool_calls: Optional[Any] = None,
+        username: Optional[str] = None,
     ) -> Message:
         """
-        Record a chat message and automatically update the parent conversation's timestamp.
+        Record a chat message and automatically link/update the parent conversation.
         """
-        # Ensure parent conversation exists
+        # Ensure parent conversation exists and has owner username
         await ChatRepository.get_or_create_conversation(
             session=session,
             conversation_id=conversation_id,
             model_id=model_used or "engineering-intelligence",
+            username=username,
         )
 
         msg = Message(

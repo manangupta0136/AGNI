@@ -89,6 +89,8 @@ try:
         close_db,
         check_db_connection,
         get_session_factory,
+        UserRepository,
+        MemoryRepository,
         ChatRepository,
         DocumentRepository,
         AuditRepository,
@@ -139,6 +141,31 @@ DOCUMENT_STORE: list[dict[str, Any]] = [
 ]
 
 # ── Pydantic Request / Response Schemas ──────────────────────────────────────
+class UserRegisterPayload(BaseModel):
+    username: str = Field(..., min_length=2, max_length=64, description="Unique username (Primary Key)")
+    password: str = Field(..., min_length=3, description="User password")
+    full_name: Optional[str] = None
+    role: Optional[str] = "engineer"
+
+class UserLoginPayload(BaseModel):
+    username: str = Field(...)
+    password: str = Field(...)
+
+class UserResponse(BaseModel):
+    status: str = "success"
+    success: bool = True
+    username: str
+    full_name: Optional[str] = None
+    role: str = "engineer"
+    message: str = "Success"
+
+class MemoryPayload(BaseModel):
+    username: str = Field(..., description="Target username for memory")
+    memory_key: str = Field(..., description="Short key/topic")
+    memory_content: str = Field(..., description="Fact or preference to remember")
+    memory_type: Optional[str] = "preference"
+    thread_id: Optional[str] = None
+
 class ChatMessagePayload(BaseModel):
     """Payload sent by FRONTEND/js/api.js or state.js"""
     message: str = Field(..., min_length=1, description="User prompt text")
@@ -146,6 +173,7 @@ class ChatMessagePayload(BaseModel):
     conversation_id: Optional[str] = Field(default_factory=lambda: f"chat-{uuid.uuid4().hex[:8]}")
     document_ids: Optional[list[str]] = Field(default_factory=list)
     stream: Optional[bool] = Field(default=False)
+    username: Optional[str] = Field(default="operator", description="User identity for privacy isolation")
 
 class ChatResponse(BaseModel):
     """Response expected by FRONTEND/js/api.js"""
@@ -499,8 +527,9 @@ async def _persist_chat_turn(
     model_used: str,
     latency_ms: float = 0.0,
     tool_calls: Optional[Any] = None,
+    username: Optional[str] = None,
 ):
-    """Helper to persist user query and assistant response to PostgreSQL."""
+    """Helper to persist user query and assistant response to PostgreSQL with user privacy isolation."""
     if not database_available:
         return
     try:
@@ -512,6 +541,7 @@ async def _persist_chat_turn(
                 sender="user",
                 text=user_prompt,
                 model_used=model_used,
+                username=username,
             )
             await ChatRepository.add_message(
                 session=session,
@@ -521,6 +551,7 @@ async def _persist_chat_turn(
                 model_used=model_used,
                 latency_ms=latency_ms,
                 tool_calls=tool_calls,
+                username=username,
             )
             await session.commit()
     except Exception as exc:
@@ -530,14 +561,27 @@ async def _persist_chat_turn(
 @app.post("/api/v1/chat", response_model=ChatResponse, tags=["Chat"])
 async def handle_chat(payload: ChatMessagePayload, request: Request):
     """
-    Synchronous/Complete chat endpoint with intelligent model re-routing.
-    Routes queries to Code, Vision, or General Orchestrator based on user selection or intent,
-    and automatically persists conversation history to PostgreSQL.
+    Synchronous/Complete chat endpoint with intelligent model re-routing,
+    user privacy isolation, and long-term memory retrieval.
     """
     client: httpx.AsyncClient = get_http_client(request)
     requested_model = (payload.model or "").lower()
     conversation_id = payload.conversation_id or f"chat-{uuid.uuid4().hex[:8]}"
+    clean_user = (payload.username or "operator").strip().lower()
     start_time = time.time()
+
+    # Load Long-Term Memory for User if available ("extra table long term mmry part")
+    user_mem_context = ""
+    if database_available and clean_user:
+        try:
+            factory = get_session_factory()
+            async with factory() as session:
+                memories = await MemoryRepository.get_user_memories(session, clean_user, limit=5)
+                if memories:
+                    mem_lines = [f"- {m.memory_key}: {m.memory_content}" for m in memories]
+                    user_mem_context = f"\nUser Preferences & Plant Context for {clean_user}:\n" + "\n".join(mem_lines)
+        except Exception as mem_err:
+            logger.debug("Could not load user memory: %s", mem_err)
 
     # 1. Specialist Re-routing: Coding Specialist
     if any(m in requested_model for m in ("code", "coder", "engineering-intelligence")):
@@ -547,7 +591,7 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
             from ollama_client import route_to_specialist, resolve_model
 
             code_model = resolve_model("code")
-            logger.info("Re-routing to Coding Specialist (%s)...", code_model)
+            logger.info("Re-routing to Coding Specialist (%s) for user: %s...", code_model, clean_user)
             prompt = build_code_prompt(payload.message)
             resp = await asyncio.to_thread(
                 route_to_specialist, "code", [{"role": "user", "content": prompt}]
@@ -581,7 +625,7 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
                 except Exception as exc:
                     logger.debug("Code execution logging skipped: %s", exc)
 
-            # Persist conversation turn
+            # Persist conversation turn with user isolation
             await _persist_chat_turn(
                 conversation_id=conversation_id,
                 user_prompt=payload.message,
@@ -589,6 +633,7 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
                 model_used=model_used_name,
                 latency_ms=latency,
                 tool_calls={"code_sandbox": exec_res},
+                username=clean_user,
             )
 
             return ChatResponse(
@@ -609,7 +654,7 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
             from ollama_client import resolve_model
 
             vision_model = resolve_model("vision")
-            logger.info("Re-routing to Vision Specialist (%s)...", vision_model)
+            logger.info("Re-routing to Vision Specialist (%s) for user: %s...", vision_model, clean_user)
             v_req = VisionRequest(session_id=conversation_id, action="vision", payload={"query": payload.message})
             v_res = await asyncio.to_thread(vision_tool.handle, v_req)
             response_text = v_res.summary or str(v_res.data)
@@ -623,6 +668,7 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
                 model_used=model_used_name,
                 latency_ms=latency,
                 tool_calls={"vision_scan": v_res.data if hasattr(v_res, "data") else {}},
+                username=clean_user,
             )
 
             return ChatResponse(
@@ -653,6 +699,7 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
                 assistant_text=response_text,
                 model_used=model_used_name,
                 latency_ms=latency,
+                username=clean_user,
             )
 
             return ChatResponse(
@@ -674,6 +721,7 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
         "You are AGNI, a confidential On-Premise Industrial AI Assistant at MRPL.\n"
         "Answer with technical precision using refinery engineering standards (OISD, ASME, API).\n"
         f"{doc_context}"
+        f"{user_mem_context}"
     )
 
     response_text = await generate_ollama_full(
@@ -690,6 +738,15 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
         assistant_text=response_text,
         model_used=target_model,
         latency_ms=latency,
+        username=clean_user,
+    )
+
+    return ChatResponse(
+        status="success",
+        success=True,
+        conversation_id=conversation_id,
+        model_used=target_model,
+        response_text=response_text,
     )
 
     return ChatResponse(
@@ -838,19 +895,60 @@ async def speak(payload: dict):
 
 
 @app.get("/api/v1/documents", tags=["Documents"])
-async def get_documents():
-    """Returns the list of indexed local confidential documents."""
+async def get_documents(username: Optional[str] = Query(None, description="Filter documents by user for privacy")):
+    """
+    Returns the list of indexed local confidential documents.
+    If username is provided, filters documents by that user for strict privacy isolation.
+    """
+    if database_available and username:
+        try:
+            factory = get_session_factory()
+            async with factory() as session:
+                docs = await DocumentRepository.list_user_documents(session, username)
+                return [
+                    {
+                        "id": d.id,
+                        "title": d.title,
+                        "type": d.file_type,
+                        "size": d.file_size_str,
+                        "pages": d.pages,
+                        "category": d.category,
+                        "active": d.is_active,
+                        "username": d.username,
+                        "folder_path": d.folder_path,
+                        "local_path": d.file_path,
+                        "updated": d.uploaded_at.isoformat() if d.uploaded_at else "Recently",
+                    }
+                    for d in docs
+                ]
+        except Exception as exc:
+            logger.debug("Failed to list user documents from DB: %s", exc)
+    
+    if username:
+        clean_user = username.strip().lower()
+        return [d for d in DOCUMENT_STORE if d.get("username") in (clean_user, None)]
     return DOCUMENT_STORE
 
 @app.post("/api/v1/documents/upload", tags=["Documents"])
-async def upload_document(file: UploadFile = File(...)):
+async def upload_document(
+    file: UploadFile = File(...),
+    username: Optional[str] = Query(default="operator", description="User owner of the uploaded PDF"),
+    thread_id: Optional[str] = Query(default=None, description="Optional associated thread ID"),
+):
     """
-    Confidential document upload endpoint.
-    Saves file securely to local storage and registers it for local OCR/RAG indexing.
+    Confidential document upload endpoint with user folder isolation.
+    Saves file securely to local storage inside user-specific directory ("folder wala location only as of now, for pdf of each user")
+    and registers it for local OCR/RAG indexing.
     """
     file_id = f"doc-{int(time.time() * 1000)}"
     file_ext = file.filename.split(".")[-1].upper() if "." in file.filename else "DOC"
-    dest_path = UPLOADS_DIR / f"{file_id}_{file.filename}"
+    
+    # User-isolated folder structure
+    clean_user = (username or "operator").strip().lower()
+    user_folder = UPLOADS_DIR / clean_user
+    user_folder.mkdir(parents=True, exist_ok=True)
+    
+    dest_path = user_folder / f"{file_id}_{file.filename}"
 
     contents = await file.read()
     file_size_bytes = len(contents)
@@ -870,10 +968,13 @@ async def upload_document(file: UploadFile = File(...)):
         "active": True,
         "category": "Uploaded Document",
         "local_path": str(dest_path),
+        "folder_path": str(user_folder),
+        "username": clean_user,
+        "thread_id": thread_id,
     }
 
     DOCUMENT_STORE.insert(0, new_doc)
-    logger.info("Indexed confidential document: %s (Size: %s)", file.filename, size_str)
+    logger.info("Indexed confidential document: %s for user: %s in folder: %s", file.filename, clean_user, user_folder)
 
     # Persist document metadata to PostgreSQL
     if database_available:
@@ -892,6 +993,9 @@ async def upload_document(file: UploadFile = File(...)):
                     category="Uploaded Document",
                     status="uploaded",
                     is_active=True,
+                    username=clean_user,
+                    thread_id=thread_id,
+                    folder_path=str(user_folder),
                 )
                 await session.commit()
         except Exception as db_e:
@@ -956,6 +1060,195 @@ async def download_file(filename: str):
         media_type="application/octet-stream",
     )
 
+# ── User Authentication Endpoints (Table 1: users) ───────────────────────────
+@app.post("/api/v1/auth/register", response_model=UserResponse, tags=["Auth"])
+async def register_user(payload: UserRegisterPayload):
+    """
+    User registration endpoint (Table 1: username PK, password).
+    Registers local engineer credentials for user-isolated private sessions.
+    """
+    if not database_available:
+        raise HTTPException(status_code=503, detail="Database module is offline.")
+    try:
+        factory = get_session_factory()
+        async with factory() as session:
+            user = await UserRepository.register(
+                session=session,
+                username=payload.username,
+                password=payload.password,
+                full_name=payload.full_name,
+                role=payload.role or "engineer",
+            )
+            await session.commit()
+            return UserResponse(
+                status="success",
+                success=True,
+                username=user.username,
+                full_name=user.full_name,
+                role=user.role,
+                message="User registered successfully. Privacy isolation active.",
+            )
+    except ValueError as val_err:
+        raise HTTPException(status_code=400, detail=str(val_err))
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Registration failed: {exc}")
+
+
+@app.post("/api/v1/auth/login", response_model=UserResponse, tags=["Auth"])
+async def login_user(payload: UserLoginPayload):
+    """
+    User authentication endpoint.
+    Validates username and password against local PostgreSQL database.
+    """
+    if not database_available:
+        raise HTTPException(status_code=503, detail="Database module is offline.")
+    try:
+        factory = get_session_factory()
+        async with factory() as session:
+            user = await UserRepository.authenticate(
+                session=session,
+                username=payload.username,
+                password=payload.password,
+            )
+            if user is None:
+                raise HTTPException(status_code=401, detail="Invalid username or password.")
+            return UserResponse(
+                status="success",
+                success=True,
+                username=user.username,
+                full_name=user.full_name,
+                role=user.role,
+                message="Login successful. User session active.",
+            )
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Login failed: {exc}")
+
+
+@app.get("/api/v1/auth/users", tags=["Auth"])
+async def list_users():
+    """List registered users (for air-gapped system admin)."""
+    if not database_available:
+        return []
+    try:
+        factory = get_session_factory()
+        async with factory() as session:
+            users = await UserRepository.list_users(session)
+            return [
+                {
+                    "username": u.username,
+                    "full_name": u.full_name,
+                    "role": u.role,
+                    "created_at": u.created_at.isoformat() if u.created_at else None,
+                }
+                for u in users
+            ]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch users: {exc}")
+
+
+# ── User Threads & History Endpoints (Table 2: conversations) ─────────────────
+@app.get("/api/v1/chat/threads", tags=["Chat"])
+async def get_user_threads(username: str = Query(..., description="Username for privacy isolation")):
+    """
+    Retrieve only the chat threads belonging to the specified user (Privacy Enforcement).
+    Ensures User A cannot see User B's threads.
+    """
+    if not database_available:
+        return []
+    try:
+        factory = get_session_factory()
+        async with factory() as session:
+            threads = await ChatRepository.list_user_conversations(session, username)
+            return [
+                {
+                    "thread_id": t.id,
+                    "username": t.username,
+                    "title": t.title,
+                    "model_id": t.model_id,
+                    "is_archived": t.is_archived,
+                    "created_at": t.created_at.isoformat() if t.created_at else None,
+                    "updated_at": t.updated_at.isoformat() if t.updated_at else None,
+                }
+                for t in threads
+            ]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch user threads: {exc}")
+
+
+# ── Long-Term Memory Endpoints (Extra Table: long_term_memories) ─────────────
+@app.post("/api/v1/memory", tags=["Memory"])
+async def save_memory(payload: MemoryPayload):
+    """
+    Record cross-session long-term memory for a user (preferences, plant specs, context).
+    """
+    if not database_available:
+        raise HTTPException(status_code=503, detail="Database module is offline.")
+    try:
+        factory = get_session_factory()
+        async with factory() as session:
+            mem = await MemoryRepository.add_memory(
+                session=session,
+                username=payload.username,
+                memory_key=payload.memory_key,
+                memory_content=payload.memory_content,
+                memory_type=payload.memory_type or "preference",
+                thread_id=payload.thread_id,
+            )
+            await session.commit()
+            return {
+                "status": "success",
+                "success": True,
+                "memory_id": mem.id,
+                "username": mem.username,
+                "memory_key": mem.memory_key,
+                "memory_type": mem.memory_type,
+            }
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to save memory: {exc}")
+
+
+@app.get("/api/v1/memory/{username}", tags=["Memory"])
+async def get_user_memories(username: str, memory_type: Optional[str] = None):
+    """Retrieve all long-term memories stored for a user."""
+    if not database_available:
+        return []
+    try:
+        factory = get_session_factory()
+        async with factory() as session:
+            memories = await MemoryRepository.get_user_memories(session, username, memory_type=memory_type)
+            return [
+                {
+                    "id": m.id,
+                    "username": m.username,
+                    "thread_id": m.thread_id,
+                    "memory_key": m.memory_key,
+                    "memory_content": m.memory_content,
+                    "memory_type": m.memory_type,
+                    "created_at": m.created_at.isoformat() if m.created_at else None,
+                }
+                for m in memories
+            ]
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch memories: {exc}")
+
+
+@app.delete("/api/v1/memory/{memory_id}", tags=["Memory"])
+async def delete_memory(memory_id: str):
+    """Delete a specific long-term memory entry."""
+    if not database_available:
+        raise HTTPException(status_code=503, detail="Database module is offline.")
+    try:
+        factory = get_session_factory()
+        async with factory() as session:
+            success = await MemoryRepository.delete_memory(session, memory_id)
+            await session.commit()
+            return {"status": "success", "deleted": success}
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"Failed to delete memory: {exc}")
+
+
 # ── Database & History Endpoints ─────────────────────────────────────────────
 @app.get("/api/v1/database/status", tags=["Database"])
 async def database_status():
@@ -966,13 +1259,22 @@ async def database_status():
 
 
 @app.get("/api/v1/chat/history/{conversation_id}", tags=["Chat"])
-async def get_chat_history(conversation_id: str):
+async def get_chat_history(
+    conversation_id: str,
+    username: Optional[str] = Query(None, description="Verify conversation belongs to this user (Privacy)"),
+):
     """Retrieve full message history for a conversation from PostgreSQL."""
     if not database_available:
         return {"conversation_id": conversation_id, "messages": []}
     try:
         factory = get_session_factory()
         async with factory() as session:
+            # Privacy check
+            if username:
+                conv = await ChatRepository.get_conversation(session, conversation_id, load_messages=False)
+                if conv and conv.username and conv.username != username.strip().lower():
+                    raise HTTPException(status_code=403, detail="Access denied: This conversation belongs to another user.")
+
             messages = await ChatRepository.get_messages(session, conversation_id)
             return {
                 "conversation_id": conversation_id,
@@ -989,6 +1291,8 @@ async def get_chat_history(conversation_id: str):
                     for m in messages
                 ],
             }
+    except HTTPException:
+        raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"Failed to fetch conversation history: {exc}")
 

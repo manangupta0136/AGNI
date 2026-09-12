@@ -43,7 +43,19 @@ class Conversation(Base, TimestampMixin):
         comment="Flag indicating if conversation has been archived",
     )
 
+    username: Mapped[Optional[str]] = mapped_column(
+        String(64),
+        ForeignKey("users.username", ondelete="CASCADE"),
+        nullable=True,
+        index=True,
+        comment="Owner username (Foreign Key to users table for privacy isolation)",
+    )
+
     # Relationships
+    user: Mapped[Optional["User"]] = relationship(
+        "User",
+        back_populates="threads",
+    )
     messages: Mapped[List["Message"]] = relationship(
         "Message",
         back_populates="conversation",

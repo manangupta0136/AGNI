@@ -6,7 +6,11 @@ function-calling entrypoint brain.py binds to the orchestrator LLM.
 
 from langchain_core.tools import tool
 
-from rag.retrieval import retrieve
+try:
+    from rag.retrieval import retrieve
+except Exception as e:
+    def retrieve(query: str, top_k: int = 4) -> str:
+        return f"[Knowledge base retrieval offline: {e}]"
 
 
 @tool

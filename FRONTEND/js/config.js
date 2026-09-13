@@ -1,13 +1,14 @@
 /**
- * MRPL AI WORKBENCH - System & API Configuration
+ * AGNI: Air-Gapped Neural Intelligence - System & API Configuration
  * 
  * Central configuration object holding model placeholders,
  * backend API routes, and default application settings.
  */
 
 const CONFIG = {
-  APP_NAME: 'MRPL AI WORKBENCH',
-  APP_SUBTITLE: 'Secure Enterprise AI Workspace',
+  APP_NAME: 'AGNI: Air-Gapped Neural Intelligence',
+  APP_SHORT_NAME: 'AGNI',
+  APP_SUBTITLE: 'Air-Gapped Neural Intelligence',
   SECURITY_BADGE: 'On-Premise PSU Network',
   DEFAULT_THEME: 'light',
   

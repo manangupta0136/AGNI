@@ -1,5 +1,5 @@
 /**
- * MRPL AI WORKBENCH - Voice Assistant Integration Engine
+ * AGNI: Air-Gapped Neural Intelligence - Voice Assistant Integration Engine
  * 
  * Modular, frontend-only Speech Recognition & Audio Input Controller.
  * Provides clean event callbacks (onTranscript, onRecordingStart, onRecordingStop, onError)

@@ -3,10 +3,19 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>MRPL AI WORKBENCH - Secure Enterprise AI Workspace</title>
+  <title>AGNI: Air-Gapped Neural Intelligence - Secure Enterprise AI Workspace</title>
   
   <!-- Compiled Tailwind CSS -->
   <link rel="stylesheet" href="./css/output.css">
+  <style>
+    @keyframes fadeBlink {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+    .thinking-text-fade {
+      animation: fadeBlink 1.5s ease-in-out infinite;
+    }
+  </style>
 </head>
 <body class="h-full bg-[#F4F5F0] dark:bg-[#151819] text-[#20251D] dark:text-[#E8EBDD] flex flex-col overflow-hidden antialiased select-none">
 
@@ -33,20 +42,20 @@
       <!-- MRPL Enterprise Logo Badge (Official Industrial Mark) -->
       <div class="w-8 h-8 bg-[#3F641C] dark:bg-[#3F641C] border border-[#2D4913] rounded text-white flex flex-col items-center justify-center font-bold text-[9px] leading-tight shrink-0 shadow-2xs">
         <span class="tracking-widest">MRPL</span>
-        <span class="text-[7px] text-[#A8D66D]">AI</span>
+        <span class="text-[7px] text-[#A8D66D]">PSU</span>
       </div>
 
       <div>
         <div class="flex items-center space-x-2">
-          <h1 class="text-sm font-bold text-[#20251D] dark:text-[#E8EBDD] tracking-tight leading-none">
-            MRPL AI WORKBENCH
+          <h1 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] tracking-tight leading-none">
+            AGNI
           </h1>
           <span class="text-[10px] font-semibold bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] px-2 py-0.5 rounded">
             v1.0 Enterprise
           </span>
         </div>
-        <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6] mt-0.5">
-          Secure Enterprise AI Workspace
+        <p class="text-[11px] font-medium text-[#5C6654] dark:text-[#AEB5A6] mt-0.5">
+          Air-Gapped Neural Intelligence
         </p>
       </div>
     </div>
@@ -96,11 +105,20 @@
 
         <!-- Sidebar Header -->
         <div class="p-3 border-b border-[#D6DDC9] dark:border-[#2D3827] flex items-center justify-between bg-[#F9FAF6] dark:bg-[#1C201E]">
-          <div>
-            <h2 class="text-xs font-bold uppercase tracking-wider text-[#3F641C] dark:text-[#A8D66D]">
-              Workspace Navigation
-            </h2>
+          <div class="flex items-center space-x-2.5">
+            <div class="w-6 h-6 bg-[#3F641C] dark:bg-[#3F641C] border border-[#2D4913] rounded text-white flex items-center justify-center font-bold text-[8px] shrink-0">
+              MRPL
+            </div>
+            <div>
+              <h2 class="text-xs font-extrabold uppercase tracking-wider text-[#20251D] dark:text-[#E8EBDD] leading-tight">
+                AGNI
+              </h2>
+              <p class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6] font-medium leading-none">Air-Gapped Neural Intelligence</p>
+            </div>
           </div>
+          <span class="text-[9px] font-bold bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] px-1.5 py-0.5 rounded">
+            Enterprise
+          </span>
         </div>
 
         <!-- New Chat Button -->
@@ -108,27 +126,15 @@
           <button 
             id="new-chat-btn"
             type="button"
-            class="w-full py-2 px-3 bg-[#3F641C] hover:bg-[#304D16] text-white rounded-md text-xs font-semibold flex items-center justify-center space-x-2 shadow-sm cursor-pointer transition-colors"
+            class="w-full py-2 px-3 bg-[#3F641C] hover:bg-[#304D16] active:scale-[0.98] text-white rounded-md text-xs font-semibold flex items-center justify-center space-x-2 shadow-sm cursor-pointer transition-all duration-150"
           >
-            <span>+ New Chat Session</span>
+            <svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>New Chat Session</span>
           </button>
         </div>
 
         <!-- Scrollable Sidebar Sections -->
         <div class="flex-1 overflow-y-auto px-3 space-y-5 py-1">
-
-          <!-- AI MODEL SELECTION SECTION -->
-          <div>
-            <div class="flex items-center justify-between px-1 mb-2 font-medium">
-              <span class="text-[11px] font-bold text-[#5C6654] dark:text-[#AEB5A6] uppercase tracking-wide">Specialist AI Model</span>
-              <span class="text-[10px] font-semibold text-[#3F641C] dark:text-[#A8D66D] bg-[#EEF5E5] dark:bg-[#1F2B18] px-1.5 py-0.5 rounded border border-[#C3D9AA] dark:border-[#34422B]">
-                Active Router
-              </span>
-            </div>
-            <div id="model-list-container" class="space-y-1.5">
-              <!-- Populated dynamically by ui.js -->
-            </div>
-          </div>
 
           <!-- UPLOADED DOCUMENTS (RAG CONTEXT) SECTION -->
           <div class="flex-1">
@@ -152,9 +158,10 @@
               <button 
                 id="upload-doc-btn"
                 type="button"
-                class="w-full py-2 px-2.5 bg-[#EEF5E5] hover:bg-[#E2EDD6] dark:bg-[#1F2B18] dark:hover:bg-[#28381F] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] rounded-md text-xs font-semibold cursor-pointer flex items-center justify-center space-x-1.5 transition-colors shadow-2xs"
+                class="w-full py-2 px-2.5 bg-[#EEF5E5] hover:bg-[#E2EDD6] dark:bg-[#1F2B18] dark:hover:bg-[#28381F] active:scale-[0.98] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] rounded-md text-xs font-semibold cursor-pointer flex items-center justify-center space-x-1.5 transition-all shadow-2xs"
               >
-                <span>+ Upload Document</span>
+                <svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                <span>Upload Document</span>
               </button>
             </div>
 
@@ -167,39 +174,16 @@
         </div>
 
         <!-- Sidebar Footer Area -->
-        <div class="p-3 border-t border-[#D6DDC9] dark:border-[#2D3827] space-y-2 bg-[#F9FAF6] dark:bg-[#1C201E]">
-          <div class="flex items-center justify-between text-xs">
-            <!-- Theme Toggle -->
-            <button 
-              id="theme-toggle-btn"
-              type="button"
-              class="px-2.5 py-1.5 border border-[#D6DDC9] dark:border-[#34422B] bg-white dark:bg-[#171B19] text-[#20251D] dark:text-[#E8EBDD] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] rounded-md cursor-pointer flex items-center space-x-1.5 font-medium shadow-2xs transition-colors"
-              title="Toggle Light/Dark Theme"
-            >
-              <span class="theme-icon-slot"></span>
-              <span class="theme-label-slot text-xs">Dark Theme</span>
-            </button>
-
-            <!-- Settings Button -->
-            <button 
-              id="settings-btn"
-              type="button"
-              class="p-1.5 border border-[#D6DDC9] dark:border-[#34422B] bg-white dark:bg-[#171B19] text-[#20251D] dark:text-[#E8EBDD] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] rounded-md cursor-pointer shadow-2xs transition-colors"
-              title="Application Settings"
-            >
-              ⚙️
-            </button>
-          </div>
-
+        <div class="p-3 border-t border-[#D6DDC9] dark:border-[#2D3827] bg-[#F9FAF6] dark:bg-[#1C201E]">
           <!-- User Profile Information -->
-          <div class="pt-1.5 border-t border-[#D6DDC9] dark:border-[#2D3827] flex items-center justify-between text-[11px]">
+          <div class="flex items-center justify-between text-[11px]">
             <div class="flex items-center space-x-2 truncate">
-              <div class="w-5 h-5 rounded-full bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] flex items-center justify-center font-bold text-[9px] shrink-0">
+              <div class="w-6 h-6 rounded-full bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] flex items-center justify-center font-bold text-[9px] shrink-0">
                 RE
               </div>
               <div class="truncate">
                 <p class="font-semibold text-[#20251D] dark:text-[#E8EBDD] truncate">Refinery Engineer</p>
-                <p class="text-[#5C6654] dark:text-[#AEB5A6] truncate">Unit-4 Asset Integrity</p>
+                <p class="text-[#5C6654] dark:text-[#AEB5A6] truncate text-[10px]">Unit-4 Asset Integrity</p>
               </div>
             </div>
           </div>
@@ -216,14 +200,8 @@
       <!-- Workspace Sub-Header Bar -->
       <header class="h-11 bg-white dark:bg-[#171B19] border-b border-[#D6DDC9] dark:border-[#2D3827] px-4 flex items-center justify-between shrink-0 text-xs shadow-2xs">
         <div class="flex items-center space-x-3 min-w-0">
-          <button 
-            id="header-new-chat-btn" 
-            type="button" 
-            class="px-2.5 py-1 bg-[#3F641C] hover:bg-[#304D16] text-white rounded text-xs font-semibold cursor-pointer transition-colors shadow-2xs"
-          >
-            + New
-          </button>
-
+          <span class="font-extrabold text-[#3F641C] dark:text-[#A8D66D] text-xs shrink-0 tracking-wide">AGNI</span>
+          <span class="text-[#D6DDC9] dark:text-[#34422B]">|</span>
           <span id="current-chat-title" class="font-bold text-[#20251D] dark:text-[#E8EBDD] truncate text-xs">
             Refinery Maintenance & Safety Audit
           </span>
@@ -252,12 +230,17 @@
           <div class="bg-white dark:bg-[#1C201E] border border-[#D6DDC9] dark:border-[#2D3827] rounded-lg p-6 shadow-xs">
             <div class="border-b border-[#EAEFE2] dark:border-[#2D3827] pb-3 mb-4 flex items-center justify-between">
               <div class="flex items-center space-x-2.5">
-                <div class="w-7 h-7 rounded bg-[#3F641C] text-white flex items-center justify-center text-xs font-bold shrink-0 border border-[#2D4913]">
-                  AI
+                <div class="w-8 h-8 rounded bg-[#3F641C] text-white flex items-center justify-center text-xs font-bold shrink-0 border border-[#2D4913] shadow-2xs">
+                  AGNI
                 </div>
-                <h3 class="text-sm font-bold text-[#20251D] dark:text-[#A8D66D]">
-                  How can I assist you today?
-                </h3>
+                <div>
+                  <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] tracking-tight">
+                    AGNI: Air-Gapped Neural Intelligence
+                  </h3>
+                  <p class="text-[11px] italic text-[#3F641C] dark:text-[#A8D66D] font-medium mt-0.5">
+                    “Secure intelligence for refinery operations.”
+                  </p>
+                </div>
               </div>
               <span class="bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] text-[10px] font-semibold px-2 py-0.5 rounded border border-[#C3D9AA] dark:border-[#34422B]">
                 OFFLINE AIR-GAPPED
@@ -269,7 +252,7 @@
             </p>
 
             <div class="text-[11px] font-bold uppercase tracking-wider text-[#3F641C] dark:text-[#A8D66D] mb-3">
-              Suggested Enterprise Queries:
+              Suggested Operations & Queries:
             </div>
 
             <!-- Prompt Suggestions Grid -->
@@ -277,37 +260,37 @@
               <button 
                 type="button"
                 class="prompt-suggestion-card p-3 bg-[#F9FAF6] dark:bg-[#171B19] hover:bg-[#EEF5E5]/70 dark:hover:bg-[#1F2B18]/70 border border-[#D6DDC9] dark:border-[#34422B] hover:border-[#3F641C] dark:hover:border-[#88B83E] rounded-md text-xs text-left cursor-pointer transition-all shadow-2xs group"
-                data-prompt="Summarize the selected inspection report"
+                data-prompt="Analyze the selected document and extract key safety findings"
               >
-                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Summarize Inspection Report</strong>
-                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Summarize the selected inspection report”</p>
+                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Analyze a document</strong>
+                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Analyze the selected document and extract key safety findings”</p>
               </button>
 
               <button 
                 type="button"
                 class="prompt-suggestion-card p-3 bg-[#F9FAF6] dark:bg-[#171B19] hover:bg-[#EEF5E5]/70 dark:hover:bg-[#1F2B18]/70 border border-[#D6DDC9] dark:border-[#34422B] hover:border-[#3F641C] dark:hover:border-[#88B83E] rounded-md text-xs text-left cursor-pointer transition-all shadow-2xs group"
-                data-prompt="Find safety requirements in this document"
+                data-prompt="Summarize maintenance records for Unit 4"
               >
-                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Safety Compliance Audit</strong>
-                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Find safety requirements in this document”</p>
+                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Summarize maintenance records</strong>
+                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Summarize maintenance records for Unit 4”</p>
               </button>
 
               <button 
                 type="button"
                 class="prompt-suggestion-card p-3 bg-[#F9FAF6] dark:bg-[#171B19] hover:bg-[#EEF5E5]/70 dark:hover:bg-[#1F2B18]/70 border border-[#D6DDC9] dark:border-[#34422B] hover:border-[#3F641C] dark:hover:border-[#88B83E] rounded-md text-xs text-left cursor-pointer transition-all shadow-2xs group"
-                data-prompt="Compare two uploaded reports"
+                data-prompt="Find critical safety observations in the uploaded reports"
               >
-                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Comparative Document Review</strong>
-                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Compare two uploaded reports”</p>
+                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Find safety observations</strong>
+                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Find critical safety observations in the uploaded reports”</p>
               </button>
 
               <button 
                 type="button"
                 class="prompt-suggestion-card p-3 bg-[#F9FAF6] dark:bg-[#171B19] hover:bg-[#EEF5E5]/70 dark:hover:bg-[#1F2B18]/70 border border-[#D6DDC9] dark:border-[#34422B] hover:border-[#3F641C] dark:hover:border-[#88B83E] rounded-md text-xs text-left cursor-pointer transition-all shadow-2xs group"
-                data-prompt="Explain this engineering procedure"
+                data-prompt="Review engineering documentation for piping integrity"
               >
-                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Engineering Procedure SOP</strong>
-                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Explain this engineering procedure”</p>
+                <strong class="text-[#3F641C] dark:text-[#A8D66D] font-semibold block group-hover:underline">Review engineering documentation</strong>
+                <p class="mt-1 text-[#5C6654] dark:text-[#AEB5A6] text-[11px]">“Review engineering documentation for piping integrity”</p>
               </button>
             </div>
           </div>
@@ -333,15 +316,21 @@
           <form id="chat-composer-form" class="border border-[#D6DDC9] dark:border-[#34422B] bg-[#F9FAF6] dark:bg-[#1C201E] rounded-lg p-2.5 focus-within:ring-1 focus-within:ring-[#3F641C] focus-within:border-[#3F641C] transition-all shadow-2xs">
             
             <!-- Voice Assistant Listening Status Badge -->
-            <div id="voice-status-indicator" class="hidden items-center space-x-1.5 px-2 py-0.5 mb-1.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded text-[11px] text-red-700 dark:text-red-300 font-medium">
+            <div id="voice-status-indicator" class="hidden items-center space-x-2 px-2.5 py-1 mb-1.5 bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-800/60 rounded text-[11px] text-red-700 dark:text-red-300 font-medium">
               <span class="w-2 h-2 rounded-full bg-red-600 animate-ping shrink-0"></span>
               <span>Listening... Speak into microphone</span>
+              <div class="voice-equalizer" id="voice-eq-container">
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+                <div class="eq-bar"></div>
+              </div>
             </div>
 
             <textarea 
               id="user-input-textarea"
               rows="2"
-              placeholder="Ask MRPL AI WORKBENCH about your documents…"
+              placeholder="Ask AGNI about your documents…"
               class="w-full bg-transparent text-xs text-[#20251D] dark:text-[#E8EBDD] placeholder-[#8A9581] focus:outline-none resize-none"
             ></textarea>
 
@@ -351,15 +340,20 @@
               </span>
 
               <div class="flex items-center space-x-2">
-                <button 
-                  id="voice-assistant-btn"
-                  type="button"
-                  aria-label="Start voice input"
-                  title="Voice Assistant (Click to start speech input)"
-                  class="p-1.5 border border-[#D6DDC9] dark:border-[#34422B] bg-white dark:bg-[#1C201E] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] rounded cursor-pointer transition-colors shadow-2xs flex items-center justify-center"
-                >
-                  <svg class="w-3.5 h-3.5 shrink-0 text-[#3F641C] dark:text-[#A8D66D]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
-                </button>
+                <!-- Voice Assistant Button Wrapper with Anime.js Animation Rings -->
+                <div class="voice-button-wrapper">
+                  <div class="voice-ring voice-ring-1 w-7 h-7"></div>
+                  <div class="voice-ring voice-ring-2 w-9 h-9"></div>
+                  <button 
+                    id="voice-assistant-btn"
+                    type="button"
+                    aria-label="Start voice input"
+                    title="Voice Assistant (Click to start speech input)"
+                    class="p-1.5 border border-[#D6DDC9] dark:border-[#34422B] bg-white dark:bg-[#1C201E] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] rounded cursor-pointer transition-all shadow-2xs flex items-center justify-center z-10"
+                  >
+                    <svg class="w-3.5 h-3.5 shrink-0 text-[#3F641C] dark:text-[#A8D66D]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>
+                  </button>
+                </div>
 
                 <button 
                   id="stop-generation-btn"
@@ -382,7 +376,7 @@
           </form>
 
           <p class="text-[10px] text-center text-[#5C6654] dark:text-[#AEB5A6]">
-            Mangalore Refinery and Petrochemicals Limited • Confidential Internal Knowledge Workbench
+            Mangalore Refinery and Petrochemicals Limited • AGNI: Air-Gapped Neural Intelligence
           </p>
         </div>
       </div>
@@ -486,6 +480,7 @@
   </div>
 
   <!-- Application Modules -->
+  <script src="./js/lib/anime.min.js"></script>
   <script src="./js/config.js"></script>
   <script src="./js/mockData.js"></script>
   <script src="./js/state.js"></script>

@@ -1,12 +1,13 @@
 /**
- * MRPL AI WORKBENCH - UI Rendering & DOM Helpers
+ * AGNI: Air-Gapped Neural Intelligence - UI Rendering & DOM Helpers
  * 
  * Provides crisp SVG icon templates, Markdown parsing, document list renderers,
- * model switchers, message list viewports, toast alerts, and theme toggling.
+ * model switchers, message list viewports, toast alerts, theme toggling,
+ * and Anime.js micro-interaction controllers for voice and processing states.
  */
 
 const ui = {
-  // SVG Icon Registry (Industrial & Enterprise Design System)
+  // SVG Icon Registry (Enterprise Industrial Design System)
   icons: {
     logo: `<svg class="w-5 h-5 text-[#3F641C] dark:text-[#A8D66D] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/></svg>`,
     plus: `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>`,
@@ -28,9 +29,14 @@ const ui = {
     thumbUp: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>`,
     thumbDown: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"/></svg>`,
     mic: `<svg class="w-3.5 h-3.5 shrink-0 text-[#3F641C] dark:text-[#A8D66D]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>`,
-    micActive: `<svg class="w-3.5 h-3.5 text-red-600 dark:text-red-400 animate-pulse shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3a1 1 0 10-2 0 5 5 0 01-10 0 1 1 0 10-2 0 7 7 0 006 6.92V20H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.08A7 7 0 0017 11z"/></svg>`,
+    micActive: `<svg class="w-3.5 h-3.5 text-red-600 dark:text-red-400 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3a1 1 0 10-2 0 5 5 0 01-10 0 1 1 0 10-2 0 7 7 0 006 6.92V20H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.08A7 7 0 0017 11z"/></svg>`,
     micOff: `<svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"/></svg>`
   },
+
+  // Anime.js active animation references
+  _voiceRingsAnim: null,
+  _voiceEqAnim: null,
+  _thinkingAnim: null,
 
   applyTheme(theme) {
     const root = document.documentElement;
@@ -83,10 +89,23 @@ const ui = {
     this.updateHeaderModelBadge();
   },
 
-  renderDocuments() {
+  renderDocuments(initialHydrate = false) {
     const container = document.getElementById('document-list-container');
     const docCountBadge = document.getElementById('selected-docs-count');
     if (!container) return;
+
+    if (state.documents.length === 0) {
+      if (docCountBadge) docCountBadge.textContent = '0 Selected';
+      container.innerHTML = `
+        <div class="text-center py-6 px-2 text-xs text-[#5C6654] dark:text-[#AEB5A6]">
+          <p class="font-medium text-[#20251D] dark:text-[#E8EBDD]">No documents uploaded yet</p>
+          <p class="mt-1 text-[11px] leading-relaxed">Click <strong>+ Upload Document</strong> above to add files for AGNI to analyze.</p>
+        </div>
+      `;
+      this.renderContextChips(initialHydrate);
+      this.renderDrawerDocuments();
+      return;
+    }
 
     const filteredDocs = state.documents.filter(d => 
       d.title.toLowerCase().includes(state.searchQuery)
@@ -101,19 +120,22 @@ const ui = {
           No matching documents found
         </div>
       `;
+      this.renderContextChips(initialHydrate);
+      this.renderDrawerDocuments();
       return;
     }
 
     container.innerHTML = filteredDocs.map(d => `
       <div 
-        class="flex items-center justify-between p-2 rounded-md cursor-pointer border text-xs transition-colors relative ${
+        id="doc-card-${d.id}"
+        class="flex items-center justify-between p-2 rounded-md cursor-pointer border text-xs transition-all duration-150 relative group ${
           d.active 
-            ? 'bg-[#EEF5E5]/70 dark:bg-[#1F2B18]/70 border-[#3F641C] dark:border-[#88B83E] font-medium' 
+            ? 'bg-[#EEF5E5]/70 dark:bg-[#1F2B18]/70 border-[#3F641C] dark:border-[#88B83E] font-medium shadow-2xs' 
             : 'bg-white dark:bg-[#171B19] border-[#D6DDC9] dark:border-[#34422B] hover:bg-[#F9FAF6] dark:hover:bg-[#1C201E]'
         }"
         onclick="window.MRPLApp.toggleDocumentSelection('${d.id}')"
       >
-        <div class="flex items-center space-x-2 min-w-0 pr-1">
+        <div class="flex items-center space-x-2 min-w-0 pr-1 flex-1">
           <input 
             type="checkbox" 
             ${d.active ? 'checked' : ''} 
@@ -121,19 +143,27 @@ const ui = {
             onclick="event.stopPropagation(); window.MRPLApp.toggleDocumentSelection('${d.id}')"
           />
           ${this.getFileIcon(d.type)}
-          <div class="min-w-0">
+          <div class="min-w-0 flex-1">
             <p class="text-xs text-[#20251D] dark:text-[#E8EBDD] truncate" title="${d.title}">${d.title}</p>
             <p class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6] truncate">${d.size} • ${d.category}</p>
           </div>
         </div>
+        <button 
+          type="button" 
+          onclick="event.stopPropagation(); window.MRPLApp.deleteDocument('${d.id}')"
+          class="p-1 text-[#5C6654] hover:text-red-600 dark:hover:text-red-400 rounded cursor-pointer shrink-0 transition-colors"
+          title="Delete document"
+        >
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+        </button>
       </div>
     `).join('');
 
-    this.renderContextChips();
+    this.renderContextChips(initialHydrate);
     this.renderDrawerDocuments();
   },
 
-  renderContextChips() {
+  renderContextChips(initialHydrate = false) {
     const container = document.getElementById('attached-context-chips');
     if (!container) return;
 
@@ -149,8 +179,10 @@ const ui = {
       return;
     }
 
+    const chipClass = initialHydrate ? 'inline-flex' : 'attachment-chip-enter inline-flex';
+
     container.innerHTML = activeDocs.map(d => `
-      <span class="inline-flex items-center space-x-1.5 text-xs bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#20251D] dark:text-[#E8EBDD] px-2.5 py-1 rounded-md border border-[#C3D9AA] dark:border-[#34422B] shadow-2xs">
+      <span class="${chipClass} items-center space-x-1.5 text-xs bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#20251D] dark:text-[#E8EBDD] px-2.5 py-1 rounded-md border border-[#C3D9AA] dark:border-[#34422B] shadow-2xs">
         ${this.getFileIcon(d.type)}
         <span class="truncate max-w-[160px] font-medium text-[#3F641C] dark:text-[#A8D66D]" title="${d.title}">${d.title}</span>
         <button 
@@ -163,6 +195,21 @@ const ui = {
         </button>
       </span>
     `).join('');
+
+    if (!initialHydrate && window.anime && typeof window.anime === 'function') {
+      try {
+        window.anime({
+          targets: '.attachment-chip-enter',
+          translateY: [4, 0],
+          opacity: [0, 1],
+          duration: 200,
+          easing: 'easeOutCubic',
+          delay: window.anime.stagger(40)
+        });
+      } catch (err) {
+        // Fallback CSS handles animation
+      }
+    }
   },
 
   renderDrawerDocuments() {
@@ -195,6 +242,14 @@ const ui = {
     }
   },
 
+  updateHeaderChatTitle() {
+    const titleNode = document.getElementById('current-chat-title');
+    if (titleNode) {
+      const conv = state.conversations.find(c => c.id === state.currentChatId);
+      titleNode.textContent = conv ? conv.title : 'Refinery Maintenance & Safety Audit';
+    }
+  },
+
   getFileIcon(type) {
     switch (type) {
       case 'PDF': return this.icons.filePdf;
@@ -205,12 +260,17 @@ const ui = {
     }
   },
 
-  renderMessages() {
+  renderMessages(initialHydrate = false) {
     const container = document.getElementById('chat-messages-container');
     const emptyState = document.getElementById('welcome-empty-state');
     if (!container) return;
 
-    if (state.messages.length === 0) {
+    this.updateHeaderChatTitle();
+
+    // Filter out transient items before rendering
+    const validMessages = (state.messages || []).filter(m => m && m.text !== undefined);
+
+    if (validMessages.length === 0) {
       container.classList.add('hidden');
       if (emptyState) emptyState.classList.remove('hidden');
       return;
@@ -219,13 +279,50 @@ const ui = {
     if (emptyState) emptyState.classList.add('hidden');
     container.classList.remove('hidden');
 
-    container.innerHTML = state.messages.map(m => {
+    const chipClass = initialHydrate ? 'inline-flex' : 'attachment-chip-enter inline-flex';
+
+    container.innerHTML = validMessages.map(m => {
       if (m.sender === 'user') {
         return `
           <div class="flex justify-end mb-5">
             <div class="max-w-2xl bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#20251D] dark:text-[#E8EBDD] rounded-lg p-3.5 shadow-xs border border-[#C3D9AA] dark:border-[#34422B]">
               <p class="text-xs leading-relaxed whitespace-pre-wrap font-sans">${this.escapeHtml(m.text)}</p>
+              ${m.attachedDocs && m.attachedDocs.length > 0 ? `
+                <div class="mt-2.5 pt-2.5 border-t border-[#C3D9AA] dark:border-[#34422B]/70 flex flex-wrap gap-2">
+                  ${m.attachedDocs.map(doc => `
+                    <div class="${chipClass} items-center space-x-2 p-2 rounded-md bg-white/90 dark:bg-[#171B19]/90 border border-[#C3D9AA] dark:border-[#34422B] text-xs shadow-2xs">
+                      ${this.getFileIcon(doc.type)}
+                      <div class="min-w-0">
+                        <p class="text-xs font-semibold text-[#20251D] dark:text-[#E8EBDD] truncate max-w-[220px]" title="${this.escapeHtml(doc.title)}">${this.escapeHtml(doc.title)}</p>
+                        <p class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6]">${doc.type || 'PDF'} ${doc.size ? '• ' + doc.size : ''} • Attached</p>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
               <div class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6] mt-1.5 text-right font-mono">${m.timestamp}</div>
+            </div>
+          </div>
+        `;
+      } else if (m.isThinking) {
+        return `
+          <div class="mb-5" id="thinking-container-${m.id}">
+            <div class="thinking-card-pulse bg-white dark:bg-[#1C201E] border border-[#D6DDC9] dark:border-[#2D3827] rounded-lg p-4 shadow-xs">
+              <div class="flex items-center justify-between pb-2 mb-2 border-b border-[#EAEFE2] dark:border-[#2D3827]">
+                <div class="flex items-center space-x-2">
+                  <span class="text-xs font-extrabold text-[#3F641C] dark:text-[#A8D66D] tracking-tight uppercase">AGNI</span>
+                  <span class="text-[#D6DDC9] dark:text-[#34422B]">|</span>
+                  <span class="text-[11px] font-semibold text-[#20251D] dark:text-[#E8EBDD]">${m.modelName}</span>
+                  <span class="text-[10px] bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] font-mono px-2 py-0.5 rounded border border-[#C3D9AA] dark:border-[#34422B]">
+                    Air-Gapped RAG
+                  </span>
+                </div>
+                <span class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6] font-mono">${m.timestamp}</span>
+              </div>
+              <div class="flex items-center space-x-2 py-1">
+                <span class="w-2 h-2 rounded-full bg-[#3F641C] dark:bg-[#A8D66D] animate-ping shrink-0"></span>
+                <span class="thinking-text-fade text-xs font-semibold text-[#3F641C] dark:text-[#A8D66D]">${this.escapeHtml(m.text || 'AGNI Thinking...')}</span>
+              </div>
             </div>
           </div>
         `;
@@ -236,9 +333,11 @@ const ui = {
             <div class="bg-white dark:bg-[#1C201E] border border-[#D6DDC9] dark:border-[#2D3827] rounded-lg p-4 shadow-xs">
               <div class="flex items-center justify-between pb-2 mb-3 border-b border-[#EAEFE2] dark:border-[#2D3827]">
                 <div class="flex items-center space-x-2">
-                  <span class="text-xs font-bold text-[#3F641C] dark:text-[#A8D66D] tracking-tight uppercase">${m.modelName}</span>
-                  <span class="text-[10px] bg-[#F9FAF6] text-[#5C6654] dark:bg-[#171B19] dark:text-[#AEB5A6] font-mono px-2 py-0.5 rounded border border-[#D6DDC9] dark:border-[#34422B]">
-                    Offline RAG Pipeline
+                  <span class="text-xs font-extrabold text-[#3F641C] dark:text-[#A8D66D] tracking-tight uppercase">AGNI</span>
+                  <span class="text-[#D6DDC9] dark:text-[#34422B]">|</span>
+                  <span class="text-[11px] font-semibold text-[#20251D] dark:text-[#E8EBDD]">${m.modelName}</span>
+                  <span class="text-[10px] bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] font-mono px-2 py-0.5 rounded border border-[#C3D9AA] dark:border-[#34422B]">
+                    Air-Gapped RAG
                   </span>
                 </div>
                 <span class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6] font-mono">${m.timestamp}</span>
@@ -254,7 +353,7 @@ const ui = {
                     <button 
                       type="button" 
                       onclick="window.MRPLApp.copyText('${m.id}')"
-                      class="px-2.5 py-1 rounded border border-[#D6DDC9] dark:border-[#34422B] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] hover:text-[#3F641C] dark:hover:text-[#A8D66D] cursor-pointer flex items-center space-x-1.5"
+                      class="px-2.5 py-1 rounded border border-[#D6DDC9] dark:border-[#34422B] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] hover:text-[#3F641C] dark:hover:text-[#A8D66D] cursor-pointer flex items-center space-x-1.5 transition-colors"
                     >
                       ${this.icons.copy}
                       <span>Copy</span>
@@ -262,18 +361,18 @@ const ui = {
                     <button 
                       type="button" 
                       onclick="window.MRPLApp.regenerate()"
-                      class="px-2.5 py-1 rounded border border-[#D6DDC9] dark:border-[#34422B] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] hover:text-[#3F641C] dark:hover:text-[#A8D66D] cursor-pointer flex items-center space-x-1.5"
+                      class="px-2.5 py-1 rounded border border-[#D6DDC9] dark:border-[#34422B] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] hover:text-[#3F641C] dark:hover:text-[#A8D66D] cursor-pointer flex items-center space-x-1.5 transition-colors"
                     >
                       ${this.icons.refresh}
                       <span>Regenerate</span>
                     </button>
                   </div>
                   <div class="flex items-center space-x-3">
-                    <button type="button" onclick="window.MRPLApp.feedback('up')" class="hover:text-[#3F641C] dark:hover:text-[#A8D66D] cursor-pointer flex items-center space-x-1" title="Helpful response">
+                    <button type="button" onclick="window.MRPLApp.feedback('up')" class="hover:text-[#3F641C] dark:hover:text-[#A8D66D] cursor-pointer flex items-center space-x-1 transition-colors" title="Helpful response">
                       ${this.icons.thumbUp}
                       <span>Helpful</span>
                     </button>
-                    <button type="button" onclick="window.MRPLApp.feedback('down')" class="hover:text-red-600 cursor-pointer flex items-center space-x-1" title="Inaccurate response">
+                    <button type="button" onclick="window.MRPLApp.feedback('down')" class="hover:text-red-600 cursor-pointer flex items-center space-x-1 transition-colors" title="Inaccurate response">
                       ${this.icons.thumbDown}
                       <span>Inaccurate</span>
                     </button>
@@ -377,31 +476,83 @@ const ui = {
     }, 2200);
   },
 
+  /**
+   * Voice Assistant 6-State Visual & Animation Controller
+   */
   setVoiceAssistantState(state) {
     const micBtn = document.getElementById('voice-assistant-btn');
     const statusBadge = document.getElementById('voice-status-indicator');
+    const rings = document.querySelectorAll('.voice-ring');
+    const eqBars = document.querySelectorAll('.eq-bar');
 
     if (!micBtn) return;
 
+    const animeAvailable = window.anime && typeof window.anime === 'function';
+
     if (state === 'recording') {
       micBtn.innerHTML = this.icons.micActive;
-      micBtn.title = 'Listening... Click to stop voice input';
+      micBtn.title = 'Listening... Click to stop speech input';
       micBtn.ariaLabel = 'Stop voice input';
       micBtn.classList.add('bg-red-100', 'dark:bg-red-950/60', 'border-red-400', 'dark:border-red-700');
       micBtn.classList.remove('hover:bg-[#EEF5E5]', 'dark:hover:bg-[#1F2B18]');
 
+      if (statusBadge) statusBadge.classList.remove('hidden');
+
+      if (animeAvailable) {
+        window.anime({
+          targets: micBtn,
+          scale: [1, 1.12, 1],
+          duration: 250,
+          easing: 'easeOutQuad'
+        });
+
+        if (rings.length > 0) {
+          window.anime.remove(rings);
+          this._voiceRingsAnim = window.anime({
+            targets: rings,
+            scale: [0.8, 1.85],
+            opacity: [0.75, 0],
+            duration: 1600,
+            delay: window.anime.stagger(450),
+            loop: true,
+            easing: 'easeOutSine'
+          });
+        }
+
+        if (eqBars.length > 0) {
+          window.anime.remove(eqBars);
+          this._voiceEqAnim = window.anime({
+            targets: eqBars,
+            scaleY: [0.2, 1.0],
+            duration: 400,
+            delay: window.anime.stagger(120),
+            direction: 'alternate',
+            loop: true,
+            easing: 'easeInOutQuad'
+          });
+        }
+      }
+    } else if (state === 'processing') {
+      micBtn.innerHTML = this.icons.mic;
+      micBtn.title = 'Processing voice transcript...';
       if (statusBadge) {
         statusBadge.classList.remove('hidden');
+        const textNode = statusBadge.querySelector('span:nth-child(2)');
+        if (textNode) textNode.textContent = 'AGNI Transcribing voice audio...';
       }
+      this.cleanupVoiceAnimations();
     } else if (state === 'error') {
       micBtn.innerHTML = this.icons.micOff;
       micBtn.title = 'Voice input unavailable or permission denied';
       micBtn.ariaLabel = 'Voice input unavailable';
       micBtn.classList.remove('bg-red-100', 'dark:bg-red-950/60', 'border-red-400', 'dark:border-red-700');
       
-      if (statusBadge) {
-        statusBadge.classList.add('hidden');
-      }
+      if (statusBadge) statusBadge.classList.add('hidden');
+      this.cleanupVoiceAnimations();
+
+      setTimeout(() => {
+        this.setVoiceAssistantState('idle');
+      }, 2500);
     } else {
       micBtn.innerHTML = this.icons.mic;
       micBtn.title = 'Voice Assistant (Click to start speech input)';
@@ -409,10 +560,34 @@ const ui = {
       micBtn.classList.remove('bg-red-100', 'dark:bg-red-950/60', 'border-red-400', 'dark:border-red-700');
       micBtn.classList.add('hover:bg-[#EEF5E5]', 'dark:hover:bg-[#1F2B18]');
 
-      if (statusBadge) {
-        statusBadge.classList.add('hidden');
+      if (statusBadge) statusBadge.classList.add('hidden');
+      this.cleanupVoiceAnimations();
+
+      if (animeAvailable && rings.length > 0) {
+        window.anime({
+          targets: rings,
+          scale: 0.8,
+          opacity: 0,
+          duration: 200,
+          easing: 'easeOutQuad'
+        });
       }
     }
+  },
+
+  cleanupVoiceAnimations() {
+    const rings = document.querySelectorAll('.voice-ring');
+    const eqBars = document.querySelectorAll('.eq-bar');
+
+    if (window.anime && typeof window.anime === 'function') {
+      if (rings.length > 0) window.anime.remove(rings);
+      if (eqBars.length > 0) window.anime.remove(eqBars);
+    }
+
+    rings.forEach(r => {
+      r.style.transform = 'scale(0.8)';
+      r.style.opacity = '0';
+    });
   }
 };
 

@@ -182,3 +182,87 @@ pre code {
   border-left-color: #a8d66d;
   background-color: #1f2b18;
 }
+
+/* ========================================== */
+/* VOICE ASSISTANT ANIME.JS CONCENTRIC RINGS  */
+/* ========================================== */
+.voice-button-wrapper {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.voice-ring {
+  position: absolute;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(220, 38, 38, 0.4);
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+.dark .voice-ring {
+  border-color: rgba(248, 113, 113, 0.4);
+}
+
+/* Voice Equalizer Waveform Bars */
+.voice-equalizer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5px;
+  height: 12px;
+  margin-left: 4px;
+}
+
+.eq-bar {
+  width: 2px;
+  height: 100%;
+  background-color: #dc2626;
+  border-radius: 1px;
+  transform-origin: bottom;
+  transform: scaleY(0.3);
+}
+
+.dark .eq-bar {
+  background-color: #f87171;
+}
+
+/* Attachment Entrance & Selection Micro-Interactions */
+.attachment-chip-enter {
+  animation: chipEnter 220ms ease-out forwards;
+}
+
+@keyframes chipEnter {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Thinking Indicator Micro-Pulse */
+.thinking-card-pulse {
+  box-shadow: 0 0 0 0 rgba(63, 100, 28, 0.15);
+  transition: box-shadow 300ms ease;
+}
+
+.dark .thinking-card-pulse {
+  box-shadow: 0 0 0 0 rgba(168, 214, 109, 0.15);
+}
+
+/* Accessibility: Respect Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar-animated,
+  .voice-ring,
+  .eq-bar,
+  .attachment-chip-enter {
+    animation: none !important;
+    transition: none !important;
+    transform: none !important;
+  }
+}

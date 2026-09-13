@@ -1,8 +1,8 @@
 /**
- * MRPL AI WORKBENCH - Application Controller & Event Wiring
+ * AGNI: Air-Gapped Neural Intelligence - Application Controller & Event Wiring
  * 
  * Orchestrates event handling, interactive prompt cards, sidebar toggles,
- * working file upload pipeline, and mock streaming response loop.
+ * document context pipeline, persistence hydration, and streaming response loop.
  */
 
 (function () {
@@ -14,7 +14,7 @@
     initializeApp();
   });
 
-  function initializeApp() {
+  async function initializeApp() {
     try {
       const { webFrame } = require('electron');
       webFrame.setZoomFactor(1.0);
@@ -22,11 +22,28 @@
     } catch (e) {
       // Ignore if not in Electron renderer
     }
+
+    // 1. Restore Theme, Sidebar & Drawer layout without animation flash on startup
     ui.applyTheme(state.theme);
+    applySidebarState(state.sidebarCollapsed, true);
+    applyDrawerState(state.contextDrawerOpen, true);
+
+    // 2. Fetch and merge backend documents with local selection state & custom uploads
+    try {
+      const backendDocs = await api.getDocuments();
+      if (Array.isArray(backendDocs) && backendDocs.length > 0) {
+        state.mergeBackendDocuments(backendDocs);
+      }
+    } catch (err) {
+      console.warn('[Init] Syncing documents with backend failed:', err);
+    }
+
+    // 3. Render restored state components
     ui.renderModels();
-    ui.renderDocuments();
-    ui.renderContextChips();
-    ui.renderMessages();
+    ui.renderDocuments(true);
+    ui.renderContextChips(true);
+    ui.renderMessages(true);
+
     setupEventListeners();
   }
 
@@ -35,10 +52,8 @@
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
     if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', toggleSidebar);
 
-    // Theme Toggle Buttons
-    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    // Theme Toggle Button (Top-Right Header)
     const headerThemeBtn = document.getElementById('header-theme-toggle');
-    if (themeToggleBtn) themeToggleBtn.addEventListener('click', () => state.toggleTheme());
     if (headerThemeBtn) headerThemeBtn.addEventListener('click', () => state.toggleTheme());
 
     // State Subscriptions
@@ -47,16 +62,21 @@
       if (event === 'sidebarToggle') applySidebarState(data);
       if (event === 'drawerToggle') applyDrawerState(data);
       if (event === 'modelChange') ui.renderModels();
-      if (event === 'documentToggle' || event === 'documentAdd' || event === 'searchChange') {
+      if (event === 'documentToggle' || event === 'documentAdd' || event === 'documentDelete' || event === 'searchChange') {
         ui.renderDocuments();
+      }
+      if (event === 'sessionChange' || event === 'messagesCleared') {
+        ui.renderMessages(true);
       }
     });
 
-    // New Chat Buttons
+    // New Chat Button (Sidebar)
     const newChatBtn = document.getElementById('new-chat-btn');
-    const headerNewChatBtn = document.getElementById('header-new-chat-btn');
     if (newChatBtn) newChatBtn.addEventListener('click', startNewChat);
-    if (headerNewChatBtn) headerNewChatBtn.addEventListener('click', startNewChat);
+
+    // Clear Messages Button (Main Header)
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+    if (clearChatBtn) clearChatBtn.addEventListener('click', clearChat);
 
     // Composer Form & Input Handlers
     const chatForm = document.getElementById('chat-composer-form');
@@ -220,10 +240,8 @@
     }
 
     // Settings Modal
-    const settingsBtn = document.getElementById('settings-btn');
     const settingsModal = document.getElementById('settings-modal');
     const closeSettingsBtn = document.getElementById('close-settings-modal');
-    if (settingsBtn && settingsModal) settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
     if (closeSettingsBtn && settingsModal) closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
     // Interactive Prompt Cards
@@ -237,10 +255,6 @@
         }
       });
     });
-
-    // Clear Chat Action
-    const clearChatBtn = document.getElementById('clear-chat-btn');
-    if (clearChatBtn) clearChatBtn.addEventListener('click', startNewChat);
 
     // Ctrl + Mouse Wheel Zoom handling
     window.addEventListener('wheel', (e) => {
@@ -266,9 +280,14 @@
 
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
-      const newDoc = await api.uploadDocument(file);
-      state.addDocument(newDoc);
-      ui.showToast(`Indexed Document: "${newDoc.title}" (${newDoc.size})`);
+      try {
+        const newDoc = await api.uploadDocument(file);
+        state.addDocument(newDoc);
+        ui.showToast(`Indexed Document: "${newDoc.title}" (${newDoc.size})`);
+      } catch (err) {
+        console.error('[Upload] Error uploading file:', file.name, err);
+        ui.showToast(`Failed to upload "${file.name}": ${err.message || 'Upload error'}`);
+      }
     }
 
     if (uploadModal) uploadModal.classList.add('hidden');
@@ -280,14 +299,23 @@
     state.toggleSidebar();
   }
 
-  function applySidebarState(collapsed) {
+  function applySidebarState(collapsed, initialHydrate = false) {
     const sidebar = document.getElementById('app-sidebar');
     const toggleBtnIcon = document.querySelector('#sidebar-toggle-btn svg');
     if (sidebar) {
+      if (initialHydrate) {
+        sidebar.style.transition = 'none';
+      }
       if (collapsed) {
         sidebar.classList.add('sidebar-closed');
       } else {
         sidebar.classList.remove('sidebar-closed');
+      }
+      if (initialHydrate) {
+        // Re-enable transition after initial render frame
+        requestAnimationFrame(() => {
+          sidebar.style.transition = '';
+        });
       }
     }
     if (toggleBtnIcon) {
@@ -295,22 +323,37 @@
     }
   }
 
-  function applyDrawerState(open) {
+  function applyDrawerState(open, initialHydrate = false) {
     const drawer = document.getElementById('right-context-drawer');
     if (drawer) {
+      if (initialHydrate) {
+        drawer.style.transition = 'none';
+      }
       if (open) {
         drawer.classList.remove('translate-x-full');
       } else {
         drawer.classList.add('translate-x-full');
+      }
+      if (initialHydrate) {
+        requestAnimationFrame(() => {
+          drawer.style.transition = '';
+        });
       }
     }
   }
 
   function startNewChat() {
     if (state.isStreaming) stopStreaming();
-    state.messages = [];
-    ui.renderMessages();
-    ui.showToast('Cleared conversation buffer.');
+    state.startNewSession('New Session');
+    ui.renderMessages(true);
+    ui.showToast('Started new chat session.');
+  }
+
+  function clearChat() {
+    if (state.isStreaming) stopStreaming();
+    state.clearCurrentMessages();
+    ui.renderMessages(true);
+    ui.showToast('Cleared conversation history.');
   }
 
   async function handleSendMessage() {
@@ -327,15 +370,41 @@
     userInput.value = '';
     userInput.style.height = 'auto';
 
+    const activeDocs = state.getActiveDocuments().map(d => ({
+      id: d.id,
+      title: d.title,
+      type: d.type,
+      size: d.size
+    }));
+
     const userMsg = {
       id: 'msg-' + Date.now(),
       sender: 'user',
       text: text,
+      attachedDocs: activeDocs,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     state.messages.push(userMsg);
+    state.saveMessages(); // Persist user message immediately
+
+    // Add temporary AI thinking/loading message
+    const activeModel = state.getSelectedModel();
+    const loadingText = activeDocs.length > 0 ? 'Analyzing document context...' : 'AGNI Thinking...';
+    const loadingMsg = {
+      id: 'loading-msg',
+      sender: 'ai',
+      text: loadingText,
+      modelName: activeModel ? activeModel.name : 'Engineering Intelligence',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isThinking: true
+    };
+    state.messages.push(loadingMsg);
     ui.renderMessages();
+
+    // Immediately enter loading/streaming state to prevent duplicate submissions
+    state.isStreaming = true;
+    updateSendButtonState();
 
     const requestPayload = state.buildChatRequest(text);
     let apiResult;
@@ -343,10 +412,15 @@
       apiResult = await api.sendMessage(requestPayload);
     } catch (err) {
       console.error('[Chat] sendMessage failed:', err);
-      ui.showToast('Could not reach backend. Is the server running?');
+      state.messages = state.messages.filter(m => !m.isThinking);
+      ui.showToast('Could not reach backend: ' + (err.message || 'Server error'));
+      state.isStreaming = false;
+      updateSendButtonState();
+      ui.renderMessages();
       return;
     }
 
+    state.messages = state.messages.filter(m => !m.isThinking);
     streamAIResponse(apiResult.response_text);
   }
 
@@ -361,7 +435,7 @@
       id: aiMsgId,
       sender: 'ai',
       text: '',
-      modelName: activeModel ? activeModel.name : 'MRPL AI',
+      modelName: activeModel ? activeModel.name : 'Engineering Intelligence',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isStreaming: true
     };
@@ -407,6 +481,10 @@
 
     state.isStreaming = false;
     updateSendButtonState();
+
+    // Persist final assistant response to state
+    state.saveMessages();
+
     ui.renderMessages();
     ui.scrollToBottom();
   }
@@ -422,6 +500,7 @@
     }
     state.isStreaming = false;
     updateSendButtonState();
+    state.saveMessages();
     ui.renderMessages();
     ui.showToast('Generation stopped.');
   }
@@ -444,12 +523,24 @@
   }
 
   // PUBLIC WINDOW API EXPORTS
-  window.MRPLApp = {
+  const AppExports = {
     switchModel: (modelId) => state.setModel(modelId),
     toggleDocumentSelection: (docId) => state.toggleDocument(docId),
+    deleteDocument: async (docId) => {
+      const doc = state.documents.find(d => d.id === docId);
+      const title = doc ? doc.title : 'Document';
+      state.deleteDocument(docId);
+      try {
+        await api.deleteDocument(docId);
+        ui.showToast(`Deleted "${title}"`);
+      } catch (err) {
+        console.warn('Failed to delete document from backend:', err);
+      }
+    },
     toggleSidebar,
     toggleTheme: () => state.toggleTheme(),
     startNewChat,
+    clearChat,
     regenerate: () => {
       if (state.messages.length > 0) {
         const lastUserMsg = state.messages.filter(m => m.sender === 'user').pop();
@@ -470,19 +561,54 @@
     }
   };
 
+  window.AGNIApp = AppExports;
+  window.MRPLApp = AppExports;
+
   function handleSendMessageWithPrompt(text) {
+    const activeDocs = state.getActiveDocuments().map(d => ({
+      id: d.id,
+      title: d.title,
+      type: d.type,
+      size: d.size
+    }));
+
     const userMsg = {
       id: 'msg-' + Date.now(),
       sender: 'user',
       text: text,
+      attachedDocs: activeDocs,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     state.messages.push(userMsg);
+    state.saveMessages();
+
+    const activeModel = state.getSelectedModel();
+    const loadingText = activeDocs.length > 0 ? 'Analyzing document context...' : 'AGNI Thinking...';
+    const loadingMsg = {
+      id: 'loading-msg',
+      sender: 'ai',
+      text: loadingText,
+      modelName: activeModel ? activeModel.name : 'Engineering Intelligence',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isThinking: true
+    };
+    state.messages.push(loadingMsg);
     ui.renderMessages();
+
+    state.isStreaming = true;
+    updateSendButtonState();
+
     api.sendMessage(state.buildChatRequest(text))
-      .then(res => streamAIResponse(res.response_text))
+      .then(res => {
+        state.messages = state.messages.filter(m => !m.isThinking);
+        streamAIResponse(res.response_text);
+      })
       .catch(err => {
         console.error('[Chat] sendMessage failed:', err);
+        state.messages = state.messages.filter(m => !m.isThinking);
+        state.isStreaming = false;
+        updateSendButtonState();
+        ui.renderMessages();
         ui.showToast('Could not reach backend. Is the server running?');
       });
   }

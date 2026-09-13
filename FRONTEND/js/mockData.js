@@ -1,5 +1,5 @@
 /**
- * MRPL AI WORKBENCH - Enterprise Mock Data
+ * AGNI: Air-Gapped Neural Intelligence - Enterprise Mock Data
  * 
  * Contains mock enterprise documents, sample user conversations,
  * and realistic technical AI markdown response templates.
@@ -7,68 +7,7 @@
 
 const MOCK_DATA = {
   // Realistic Enterprise Mock Documents
-  INITIAL_DOCUMENTS: [
-    {
-      id: 'doc-001',
-      title: 'MRPL Annual Report.pdf',
-      type: 'PDF',
-      size: '4.2 MB',
-      updated: '2026-09-02',
-      pages: 142,
-      active: true,
-      category: 'Finance & Compliance'
-    },
-    {
-      id: 'doc-002',
-      title: 'Refinery Safety Guidelines.pdf',
-      type: 'PDF',
-      size: '1.8 MB',
-      updated: '2026-08-30',
-      pages: 48,
-      active: true,
-      category: 'OISD Safety'
-    },
-    {
-      id: 'doc-003',
-      title: 'Piping Inspection Report.pdf',
-      type: 'PDF',
-      size: '850 KB',
-      updated: '2026-08-28',
-      pages: 12,
-      active: true,
-      category: 'Unit 4 Asset Integrity'
-    },
-    {
-      id: 'doc-004',
-      title: 'Vendor Evaluation.xlsx',
-      type: 'XLSX',
-      size: '320 KB',
-      updated: '2026-08-20',
-      pages: 4,
-      active: false,
-      category: 'Procurement'
-    },
-    {
-      id: 'doc-005',
-      title: 'Maintenance SOP.docx',
-      type: 'DOCX',
-      size: '1.2 MB',
-      updated: '2026-08-15',
-      pages: 26,
-      active: false,
-      category: 'Operations'
-    },
-    {
-      id: 'doc-006',
-      title: 'Equipment Inspection Images.zip',
-      type: 'ZIP',
-      size: '18.4 MB',
-      updated: '2026-08-10',
-      pages: 1,
-      active: false,
-      category: 'Inspection Visuals'
-    }
-  ],
+  INITIAL_DOCUMENTS: [],
 
   // Sample Recent Conversations
   INITIAL_CONVERSATIONS: [
@@ -169,7 +108,7 @@ $ mrpl-telemetry-cli --unit 4 --line 4-HC-201 --verify-integrity
 
 - [Source: Vendor Evaluation.xlsx — Sheet 1, Cell B4:F12]`,
 
-    DEFAULT: `### MRPL AI Workbench Analysis
+    DEFAULT: `### AGNI: Air-Gapped Neural Intelligence Analysis
 
 **Selected Engine**: Engineering Intelligence (\`qwen2.5-coder:7b\`)  
 **Deployment Mode**: Offline On-Premise PSU Network  

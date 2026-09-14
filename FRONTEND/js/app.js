@@ -39,10 +39,14 @@
     }
 
     // 3. Render restored state components
+    ui.renderNavigation();
+    ui.renderQuickActions();
+    ui.renderRightPanels();
     ui.renderModels();
     ui.renderDocuments(true);
     ui.renderContextChips(true);
     ui.renderMessages(true);
+    ui.switchView(state.activeNav);
 
     setupEventListeners();
   }
@@ -61,7 +65,11 @@
       if (event === 'themeChange') ui.applyTheme(data);
       if (event === 'sidebarToggle') applySidebarState(data);
       if (event === 'drawerToggle') applyDrawerState(data);
-      if (event === 'modelChange') ui.renderModels();
+      if (event === 'navChange') ui.switchView(data);
+      if (event === 'modelChange') {
+        ui.renderModels();
+        ui.renderRightPanels();
+      }
       if (event === 'documentToggle' || event === 'documentAdd' || event === 'documentDelete' || event === 'searchChange') {
         ui.renderDocuments();
       }
@@ -524,6 +532,22 @@
 
   // PUBLIC WINDOW API EXPORTS
   const AppExports = {
+    navigate: (navId) => state.setActiveNav(navId),
+    triggerQuickAction: (promptText) => {
+      if (!state.isStreaming) {
+        state.setActiveNav('chat');
+        const userInput = document.getElementById('user-input-textarea');
+        if (userInput) userInput.value = promptText;
+        handleSendMessage();
+      }
+    },
+    selectSession: (sessionId) => {
+      state.currentChatId = sessionId;
+      state.messages = state.messagesBySession[sessionId] || [];
+      state.saveState();
+      state.setActiveNav('chat');
+      ui.renderMessages(true);
+    },
     switchModel: (modelId) => state.setModel(modelId),
     toggleDocumentSelection: (docId) => state.toggleDocument(docId),
     deleteDocument: async (docId) => {

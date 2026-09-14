@@ -23,14 +23,26 @@ const ui = {
     lock: `<svg class="w-3.5 h-3.5 text-[#3F641C] dark:text-[#A8D66D] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>`,
     send: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>`,
     stop: `<svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`,
-    settings: `<svg class="w-4 h-4 text-[#5C6654] hover:text-[#20251D] dark:hover:text-[#E8EBDD] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
+    settings: `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
     copy: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>`,
     refresh: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>`,
     thumbUp: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 10h4.764a2 2 0 011.789 2.894l-3.5 7A2 2 0 0115.263 21h-4.017c-.163 0-.326-.02-.485-.06L7 20m7-10V5a2 2 0 00-2-2h-.095c-.5 0-.905.405-.905.905 0 .714-.211 1.412-.608 2.006L7 11v9m7-10h-2M7 20H5a2 2 0 01-2-2v-6a2 2 0 012-2h2.5"/></svg>`,
     thumbDown: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14H5.236a2 2 0 01-1.789-2.894l3.5-7A2 2 0 018.736 3h4.018c.163 0 .326.02.485.06L17 4m-7 10v5a2 2 0 002 2h.095c.5 0 .905-.405.905-.905 0-.714.211-1.412.608-2.006L17 13V4m-7 10h2m5-10h2a2 2 0 012 2v6a2 2 0 01-2 2h-2.5"/></svg>`,
     mic: `<svg class="w-3.5 h-3.5 shrink-0 text-[#3F641C] dark:text-[#A8D66D]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/></svg>`,
     micActive: `<svg class="w-3.5 h-3.5 text-red-600 dark:text-red-400 shrink-0" fill="currentColor" viewBox="0 0 24 24"><path d="M12 14a3 3 0 003-3V5a3 3 0 10-6 0v6a3 3 0 003 3zm5-3a1 1 0 10-2 0 5 5 0 01-10 0 1 1 0 10-2 0 7 7 0 006 6.92V20H9a1 1 0 100 2h6a1 1 0 100-2h-2v-2.08A7 7 0 0017 11z"/></svg>`,
-    micOff: `<svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"/></svg>`
+    micOff: `<svg class="w-3.5 h-3.5 text-gray-400 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11a7 7 0 01-7 7m0 0a7 7 0 01-7-7m7 7v4m0 0H8m4 0h4m-4-8a3 3 0 01-3-3V5a3 3 0 116 0v6a3 3 0 01-3 3z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 3l18 18"/></svg>`,
+    home: `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 00-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>`,
+    chat: `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>`,
+    fileText: `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
+    database: `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21 3.582 4 8 4s8-1.79 8-4"/></svg>`,
+    cpu: `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 3v2m6-2v2M9 19v2m6-2v2M3 9h2m-2 6h2m14-6h2m-2 6h2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"/></svg>`,
+    tool: `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>`,
+    clock: `<svg class="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`,
+    fileSearch: `<svg class="w-4 h-4 shrink-0 text-[#3F641C] dark:text-[#A8D66D]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0zM10 7v3m0 0v3m0-3h3m-3 0H7"/></svg>`,
+    terminal: `<svg class="w-4 h-4 shrink-0 text-cyan-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>`,
+    barChart: `<svg class="w-4 h-4 shrink-0 text-amber-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>`,
+    eye: `<svg class="w-4 h-4 shrink-0 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>`,
+    fileCheck: `<svg class="w-4 h-4 shrink-0 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`
   },
 
   // Anime.js active animation references
@@ -588,6 +600,296 @@ const ui = {
       r.style.transform = 'scale(0.8)';
       r.style.opacity = '0';
     });
+  },
+
+  /**
+   * Render Vertical Sidebar Navigation Links
+   */
+  renderNavigation() {
+    const container = document.getElementById('sidebar-nav-container');
+    if (!container) return;
+
+    const navItems = CONFIG.NAV_ITEMS || [];
+    const activeNav = state.activeNav || 'chat';
+
+    container.innerHTML = navItems.map(item => {
+      const isActive = item.id === activeNav;
+      const iconSvg = this.icons[item.icon] || this.icons.chat;
+      return `
+        <button 
+          type="button" 
+          onclick="window.MRPLApp.navigate('${item.id}')"
+          class="w-full flex items-center space-x-2.5 px-3 py-2 rounded-md text-xs font-medium cursor-pointer transition-all duration-150 text-left border-l-3 ${
+            isActive 
+              ? 'nav-item-active bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#20251D] dark:text-[#E8EBDD] border-[#3F641C] dark:border-[#88B83E]' 
+              : 'border-transparent text-[#5C6654] dark:text-[#AEB5A6] hover:bg-[#F4F5F0] dark:hover:bg-[#1F2522] hover:text-[#20251D] dark:hover:text-[#E8EBDD]'
+          }"
+        >
+          <span class="${isActive ? 'text-[#3F641C] dark:text-[#A8D66D]' : 'text-[#8A9581] dark:text-[#6E7B68]'}">${iconSvg}</span>
+          <span class="truncate flex-1">${item.label}</span>
+        </button>
+      `;
+    }).join('');
+  },
+
+  /**
+   * Render Horizontal Quick Action Cards
+   */
+  renderQuickActions() {
+    const container = document.getElementById('quick-action-cards-container');
+    if (!container) return;
+
+    const actions = CONFIG.QUICK_ACTIONS || [];
+    container.innerHTML = actions.map(act => `
+      <button 
+        type="button"
+        onclick="window.MRPLApp.triggerQuickAction('${act.prompt}')"
+        class="quick-action-card p-3 bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] hover:border-[#3F641C] dark:hover:border-[#88B83E] rounded-md text-xs text-left cursor-pointer transition-all shadow-2xs group flex flex-col justify-between"
+      >
+        <div class="flex items-center justify-between mb-1.5">
+          <span class="p-1.5 rounded bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] shrink-0">
+            ${this.icons[act.icon] || this.icons.fileSearch}
+          </span>
+          <span class="text-[10px] text-[#8A9581] dark:text-[#6E7B68] font-mono group-hover:text-[#3F641C] dark:group-hover:text-[#A8D66D]">Run →</span>
+        </div>
+        <div>
+          <h4 class="font-bold text-[#20251D] dark:text-[#E8EBDD] group-hover:text-[#3F641C] dark:group-hover:text-[#A8D66D] truncate text-xs">${act.title}</h4>
+          <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6] mt-0.5 line-clamp-2">${act.desc}</p>
+        </div>
+      </button>
+    `).join('');
+  },
+
+  /**
+   * Render Right Information / System Panels
+   */
+  renderRightPanels() {
+    // 1. Model Orchestrator Panel
+    const modelsContainer = document.getElementById('right-panel-models-list');
+    if (modelsContainer) {
+      modelsContainer.innerHTML = CONFIG.MODELS.map(m => {
+        const isActive = m.id === state.activeModelId;
+        return `
+          <div 
+            onclick="window.MRPLApp.switchModel('${m.id}')"
+            class="p-2.5 rounded-md border text-xs cursor-pointer transition-all duration-150 ${
+              isActive 
+                ? 'bg-[#EEF5E5]/80 dark:bg-[#1F2B18]/80 border-[#3F641C] dark:border-[#88B83E] shadow-2xs' 
+                : 'bg-white dark:bg-[#161B19] border-[#D6DDC9] dark:border-[#283623] hover:bg-[#F9FAF6] dark:hover:bg-[#1F2522]'
+            }"
+          >
+            <div class="flex items-center justify-between">
+              <div class="flex items-center space-x-1.5 min-w-0">
+                <span class="w-2 h-2 rounded-full ${isActive ? 'bg-[#3F641C] dark:bg-[#88B83E] animate-pulse' : 'bg-gray-400'} shrink-0"></span>
+                <span class="font-bold text-[#20251D] dark:text-[#E8EBDD] truncate text-xs">${m.name}</span>
+              </div>
+              <span class="font-mono text-[9px] px-1.5 py-0.5 rounded ${isActive ? 'bg-[#3F641C] text-white' : 'bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D]'}">${m.code}</span>
+            </div>
+            <p class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6] mt-1 font-mono">${m.backendModel} • ${m.badge}</p>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // 2. Agent Tools Panel
+    const toolsContainer = document.getElementById('right-panel-tools-list');
+    if (toolsContainer) {
+      const tools = CONFIG.AGENT_TOOLS || [];
+      toolsContainer.innerHTML = tools.map(t => `
+        <div class="flex items-center justify-between p-2 rounded bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] text-xs">
+          <div class="min-w-0 pr-1">
+            <p class="font-semibold text-[#20251D] dark:text-[#E8EBDD] truncate text-[11px]">${t.name}</p>
+            <p class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6] truncate">${t.desc}</p>
+          </div>
+          <span class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] shrink-0">
+            ${t.status}
+          </span>
+        </div>
+      `).join('');
+    }
+
+    // 3. System Status Panel
+    const statusContainer = document.getElementById('right-panel-status-list');
+    if (statusContainer) {
+      const statuses = CONFIG.SYSTEM_STATUS || [];
+      statusContainer.innerHTML = statuses.map(s => `
+        <div class="flex items-center justify-between text-[11px] p-1.5 border-b border-[#D6DDC9]/60 dark:border-[#283623] last:border-0">
+          <span class="text-[#5C6654] dark:text-[#AEB5A6] font-medium">${s.label}:</span>
+          <span class="font-semibold font-mono text-[#3F641C] dark:text-[#A8D66D]">${s.value}</span>
+        </div>
+      `).join('');
+    }
+  },
+
+  /**
+   * Switch View in Central Workspace based on Nav ID
+   */
+  switchView(navId) {
+    this.renderNavigation();
+    
+    // Switch main workspace content views
+    const chatWorkspace = document.getElementById('workspace-chat-view');
+    const otherViewsContainer = document.getElementById('workspace-other-views');
+    const viewTitleNode = document.getElementById('current-chat-title');
+
+    if (!chatWorkspace) return;
+
+    if (navId === 'chat' || navId === 'home') {
+      chatWorkspace.classList.remove('hidden');
+      if (otherViewsContainer) otherViewsContainer.classList.add('hidden');
+    } else {
+      chatWorkspace.classList.add('hidden');
+      if (otherViewsContainer) {
+        otherViewsContainer.classList.remove('hidden');
+        this.renderOtherViewContent(navId, otherViewsContainer);
+      }
+    }
+  },
+
+  renderOtherViewContent(navId, container) {
+    let title = 'Section';
+    let contentHtml = '';
+
+    switch (navId) {
+      case 'documents':
+        title = 'Document Context & OCR Index';
+        contentHtml = `
+          <div class="space-y-4 max-w-4xl mx-auto py-4">
+            <div class="bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] rounded-lg p-5">
+              <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] uppercase tracking-wider mb-2">Document Context Management</h3>
+              <p class="text-xs text-[#5C6654] dark:text-[#AEB5A6] leading-relaxed mb-4">Upload and select confidential refinery documents (PDF, XLSX, DOCX, ZIP) for offline RAG indexing in local ChromaDB.</p>
+              <div id="documents-view-list" class="space-y-2">
+                <!-- Document Cards -->
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'knowledge':
+        title = 'ChromaDB Vector Store';
+        contentHtml = `
+          <div class="space-y-4 max-w-4xl mx-auto py-4">
+            <div class="bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] rounded-lg p-5">
+              <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] uppercase tracking-wider mb-2">On-Premise Vector Database Metrics</h3>
+              <p class="text-xs text-[#5C6654] dark:text-[#AEB5A6] leading-relaxed mb-4">Local sentence-transformers embedding database operating air-gapped on PSU infrastructure.</p>
+              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs">
+                  <span class="text-[10px] font-mono uppercase text-[#3F641C] dark:text-[#A8D66D] font-bold block">Total Chunks</span>
+                  <span class="text-lg font-extrabold text-[#20251D] dark:text-[#E8EBDD]">3,420</span>
+                </div>
+                <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs">
+                  <span class="text-[10px] font-mono uppercase text-[#3F641C] dark:text-[#A8D66D] font-bold block">Embedding Model</span>
+                  <span class="text-xs font-semibold text-[#20251D] dark:text-[#E8EBDD]">all-MiniLM-L6-v2</span>
+                </div>
+                <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs">
+                  <span class="text-[10px] font-mono uppercase text-[#3F641C] dark:text-[#A8D66D] font-bold block">Latency</span>
+                  <span class="text-xs font-semibold text-[#20251D] dark:text-[#E8EBDD]">&lt; 12ms (Offline)</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'models':
+        title = 'Local Model Hub & GPU Cluster';
+        contentHtml = `
+          <div class="space-y-4 max-w-4xl mx-auto py-4">
+            <div class="bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] rounded-lg p-5">
+              <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] uppercase tracking-wider mb-2">Configured On-Premise LLM Models</h3>
+              <div class="space-y-3 mt-4">
+                ${CONFIG.MODELS.map(m => `
+                  <div class="p-4 rounded-md border border-[#D6DDC9] dark:border-[#283623] bg-[#F9FAF6] dark:bg-[#171B19] flex items-center justify-between">
+                    <div>
+                      <div class="flex items-center space-x-2">
+                        <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B]">${m.code}</span>
+                        <h4 class="font-bold text-xs text-[#20251D] dark:text-[#E8EBDD]">${m.name}</h4>
+                        <span class="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-300 font-semibold">Active</span>
+                      </div>
+                      <p class="text-xs text-[#5C6654] dark:text-[#AEB5A6] mt-1">${m.description}</p>
+                      <p class="text-[11px] font-mono text-[#3F641C] dark:text-[#A8D66D] mt-1">Backend: ${m.backendModel}</p>
+                    </div>
+                    <button type="button" onclick="window.MRPLApp.switchModel('${m.id}')" class="px-3 py-1 bg-[#3F641C] hover:bg-[#304D16] text-white text-xs font-semibold rounded cursor-pointer">
+                      Select Model
+                    </button>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'tools':
+        title = 'Agent Execution Tools';
+        contentHtml = `
+          <div class="space-y-4 max-w-4xl mx-auto py-4">
+            <div class="bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] rounded-lg p-5">
+              <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] uppercase tracking-wider mb-2">On-Premise Industrial Agent Tools</h3>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+                ${CONFIG.AGENT_TOOLS.map(t => `
+                  <div class="p-3 rounded-md border border-[#D6DDC9] dark:border-[#283623] bg-[#F9FAF6] dark:bg-[#171B19]">
+                    <div class="flex items-center justify-between">
+                      <h4 class="font-bold text-xs text-[#20251D] dark:text-[#E8EBDD]">${t.name}</h4>
+                      <span class="text-[9px] font-bold font-mono px-1.5 py-0.5 rounded bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B]">${t.status}</span>
+                    </div>
+                    <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6] mt-1">${t.desc}</p>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'history':
+        title = 'Task & Chat History';
+        contentHtml = `
+          <div class="space-y-4 max-w-4xl mx-auto py-4">
+            <div class="bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] rounded-lg p-5">
+              <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] uppercase tracking-wider mb-2">Recent Sessions</h3>
+              <div class="space-y-2 mt-4">
+                ${state.conversations.map(c => `
+                  <div onclick="window.MRPLApp.selectSession('${c.id}')" class="p-3 rounded border border-[#D6DDC9] dark:border-[#283623] bg-[#F9FAF6] dark:bg-[#171B19] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] cursor-pointer flex items-center justify-between">
+                    <div>
+                      <h4 class="font-semibold text-xs text-[#20251D] dark:text-[#E8EBDD]">${c.title}</h4>
+                      <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6]">${c.subtitle}</p>
+                    </div>
+                    <span class="text-[10px] font-mono text-[#8A9581] dark:text-[#6E7B68]">${c.date}</span>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+
+      case 'settings':
+        title = 'System Configuration';
+        contentHtml = `
+          <div class="space-y-4 max-w-4xl mx-auto py-4">
+            <div class="bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] rounded-lg p-5">
+              <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] uppercase tracking-wider mb-2">FastAPI & Ollama System Settings</h3>
+              <div class="space-y-3 text-xs mt-4">
+                <div>
+                  <label class="block text-[11px] font-semibold text-[#5C6654] dark:text-[#AEB5A6] mb-1">FastAPI Backend Endpoint URL</label>
+                  <input type="text" value="${CONFIG.API_BASE_URL}" class="w-full px-3 py-1.5 bg-[#F9FAF6] dark:bg-[#171B19] border border-[#D6DDC9] dark:border-[#283623] rounded font-mono text-xs text-[#20251D] dark:text-[#E8EBDD]" readonly />
+                </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-[#5C6654] dark:text-[#AEB5A6] mb-1">Security Model</label>
+                  <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs text-[#3F641C] dark:text-[#A8D66D] font-mono">
+                    Air-Gapped PSU Enterprise Infrastructure (Strictly Offline)
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        break;
+    }
+
+    container.innerHTML = contentHtml;
   }
 };
 

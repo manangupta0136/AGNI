@@ -16,6 +16,7 @@ class AppState {
     this.sidebarCollapsed = false;
     this.contextDrawerOpen = false;
     this.activeModelId = 'engineering-intelligence';
+    this.activeNav = 'chat';
     this.searchQuery = '';
     this.isStreaming = false;
     this.currentChatId = 'chat-001';
@@ -64,6 +65,9 @@ class AppState {
       if (data.activeModelId) {
         this.activeModelId = data.activeModelId;
       }
+      if (data.activeNav) {
+        this.activeNav = data.activeNav;
+      }
       if (data.currentChatId) {
         this.currentChatId = data.currentChatId;
       }
@@ -106,6 +110,7 @@ class AppState {
         sidebarCollapsed: this.sidebarCollapsed,
         contextDrawerOpen: this.contextDrawerOpen,
         activeModelId: this.activeModelId,
+        activeNav: this.activeNav,
         currentChatId: this.currentChatId,
         documents: this.documents,
         conversations: this.conversations,
@@ -118,6 +123,12 @@ class AppState {
     } catch (err) {
       console.warn('[State] Failed to save state to localStorage:', err);
     }
+  }
+
+  setActiveNav(navId) {
+    this.activeNav = navId;
+    this.saveState();
+    this.notify('navChange', this.activeNav);
   }
 
   setTheme(newTheme) {

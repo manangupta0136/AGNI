@@ -10,8 +10,77 @@ const CONFIG = {
   APP_SHORT_NAME: 'AGNI',
   APP_SUBTITLE: 'Air-Gapped Neural Intelligence',
   SECURITY_BADGE: 'On-Premise PSU Network',
-  DEFAULT_THEME: 'light',
+  DEFAULT_THEME: 'dark',
   
+  // Navigation Section Items
+  NAV_ITEMS: [
+    { id: 'home', label: 'Home', icon: 'home' },
+    { id: 'chat', label: 'Chat', icon: 'chat' },
+    { id: 'documents', label: 'Documents', icon: 'fileText' },
+    { id: 'knowledge', label: 'Knowledge Base', icon: 'database' },
+    { id: 'models', label: 'Model Hub', icon: 'cpu' },
+    { id: 'tools', label: 'Agent Tools', icon: 'tool' },
+    { id: 'history', label: 'Task History', icon: 'clock' },
+    { id: 'settings', label: 'Settings', icon: 'settings' }
+  ],
+
+  // Quick Action Cards
+  QUICK_ACTIONS: [
+    {
+      id: 'doc-analysis',
+      title: 'Document Analysis',
+      desc: 'Extract safety findings & engineering specs',
+      prompt: 'Analyze the selected document and extract key safety findings',
+      icon: 'fileSearch'
+    },
+    {
+      id: 'code-automation',
+      title: 'Code & Automation',
+      desc: 'Python scripts, telemetry & SCADA parsers',
+      prompt: 'Write a Python script to parse refinery telemetry logs',
+      icon: 'terminal'
+    },
+    {
+      id: 'data-analysis',
+      title: 'Data Analysis',
+      desc: 'Financial, vendor scorecard & unit metrics',
+      prompt: 'Compare vendor scorecard metrics and pricing summaries',
+      icon: 'barChart'
+    },
+    {
+      id: 'image-ocr',
+      title: 'Image & OCR',
+      desc: 'Inspection diagrams, P&ID schematics & blueprints',
+      prompt: 'Review engineering diagrams for Unit-4 piping integrity',
+      icon: 'eye'
+    },
+    {
+      id: 'report-gen',
+      title: 'Report Generation',
+      desc: 'OISD safety reports & compliance docs',
+      prompt: 'Generate an OISD-137 compliance safety report summary',
+      icon: 'fileCheck'
+    }
+  ],
+
+  // Agent Tools Metadata
+  AGENT_TOOLS: [
+    { id: 'tool-file', name: 'File Read/Write', status: 'Active', desc: 'Secure local storage access' },
+    { id: 'tool-code', name: 'Code Execution', status: 'Active', desc: 'Air-gapped Python sandbox' },
+    { id: 'tool-sheet', name: 'Spreadsheet Parser', status: 'Active', desc: 'XLSX & CSV tabular processing' },
+    { id: 'tool-search', name: 'Document Search', status: 'Active', desc: 'ChromaDB vector retriever' },
+    { id: 'tool-ocr', name: 'OCR & Vision', status: 'Active', desc: 'Multi-modal document scanner' },
+    { id: 'tool-report', name: 'Report Generation', status: 'Active', desc: 'Automated docx generator' }
+  ],
+
+  // System & Network Status Metadata
+  SYSTEM_STATUS: [
+    { label: 'External Connections', value: 'None (Air-Gapped)', status: 'secure' },
+    { label: 'Model Hosting', value: 'Local GPU / CPU Cluster', status: 'ready' },
+    { label: 'Agent Tools', value: '6 Modules Active', status: 'active' },
+    { label: 'Data Boundary', value: '100% On-Premise MRPL', status: 'secure' }
+  ],
+
   // Backend Model Options (for future Ollama & Router integration)
   MODELS: [
     {

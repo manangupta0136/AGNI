@@ -68,6 +68,49 @@ html, body {
   transform: scale(0.92);
 }
 
+/* Sidebar Navigation Item Active State Indicator */
+.nav-item-active {
+  background-color: #eef5e5 !important;
+  color: #20251d !important;
+  border-left: 3px solid #3f641c !important;
+  font-weight: 600 !important;
+}
+
+.dark .nav-item-active {
+  background-color: rgba(31, 43, 24, 0.85) !important;
+  color: #e8ebdd !important;
+  border-left: 3px solid #88b83e !important;
+  font-weight: 600 !important;
+}
+
+.nav-item-active svg {
+  color: #3f641c !important;
+}
+
+.dark .nav-item-active svg {
+  color: #a8d66d !important;
+}
+
+/* Quick Action Card Hover Interaction */
+.quick-action-card {
+  transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
+}
+
+.quick-action-card:hover {
+  transform: translateY(-2px);
+}
+
+/* Dark Enterprise Card Borders & Surfaces */
+.dark-panel-card {
+  background-color: #171b19;
+  border-color: #2d3827;
+}
+
+.dark .dark-panel-card {
+  background-color: #161b19;
+  border-color: #283623;
+}
+
 /* Typewriter Cursor - MRPL Green */
 @keyframes blink {
   0%, 100% { opacity: 1; }

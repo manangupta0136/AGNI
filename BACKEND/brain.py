@@ -3,19 +3,31 @@ import os
 import re
 import threading
 import time
-from typing import Optional
+try:
+    from typing import Annotated, Optional
+except ImportError:
+    from typing_extensions import Annotated
+    from typing import Optional
 
 import httpx
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage, AnyMessage
 from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode
 
 from prompts.orchestrator_prompt import ORCHESTRATOR_SYSTEM_PROMPT
-from tools.pdf import pdf_tool, read_pdf_tool, docx_tool, pptx_tool
+from tools.pdf import (
+    pdf_tool,
+    read_pdf_tool,
+    read_pptx_tool,
+    convert_document_tool,
+    docx_tool,
+    pptx_tool,
+)
 from tools.rag import rag_search
 
 # Ensures orchestrator activity is visible in the terminal even if this
@@ -291,6 +303,8 @@ tools = [
     rag_search,
     pdf_tool,
     read_pdf_tool,
+    read_pptx_tool,
+    convert_document_tool,
     docx_tool,
     pptx_tool,
     execute_code_tool,
@@ -299,11 +313,11 @@ tools = [
 tool_node = ToolNode(tools)
 
 # ---- Plan -> Review -> Approval -> Implementation workflow ----
-# Tools that actually change local state or run code. Anything NOT in this
-# set (read_file, rag_search, read_pdf_tool, analyze_image) is treated as
-# analysis/read-only and may be called freely at any time, including while
-# still building a plan.
-WRITE_TOOL_NAMES = {"write_file", "pdf_tool", "docx_tool", "pptx_tool", "execute_code_tool"}
+# Destructive/system modifying tools (write_file in workspace, arbitrary code execution)
+# require explicit plan approval. Document generation/conversion tools (docx_tool,
+# convert_document_tool, pdf_tool, pptx_tool) output standalone deliverables to data/reports/
+# and are permitted to execute directly when requested by the user.
+WRITE_TOOL_NAMES = {"write_file", "execute_code_tool"}
 
 # Sentinel the orchestrator appends (on its own line) to a message that is
 # presenting a plan and waiting on the user's approval before it may execute

@@ -45,6 +45,21 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+# ── Environment file ─────────────────────────────────────────────────────────
+# Loads AGNI_VER2/.env (DATABASE_URL, model overrides, etc.) into the process
+# environment. Must happen before any local module import below — brain.py
+# and database/connection.py both read os.getenv(...) at module import time
+# to build module-level constants (ORCHESTRATOR_MODEL, DEFAULT_POSTGRES_URL),
+# so loading .env after those imports would be too late to affect them.
+try:
+    from dotenv import load_dotenv
+
+    _ENV_PATH = Path(__file__).resolve().parent.parent / ".env"
+    if load_dotenv(dotenv_path=_ENV_PATH):
+        print(f"[env] Loaded environment overrides from {_ENV_PATH}")
+except ImportError:
+    pass  # python-dotenv not installed — falls back to real environment variables only
+
 # ── Structured Logging ───────────────────────────────────────────────────────
 logging.basicConfig(
     level=logging.INFO,
@@ -65,9 +80,10 @@ except Exception as e:  # noqa: BLE001
     logger.warning("brain.py graph unavailable: %s", e)
 
 try:
-    from voice_command.stt import transcribe_audio
+    from voice_command.stt import transcribe_audio, TranscriberBusyError
 except Exception as e:  # noqa: BLE001
     transcribe_audio = None
+    TranscriberBusyError = None
     logger.warning("voice_command.stt unavailable: %s", e)
 
 try:
@@ -81,6 +97,15 @@ try:
 except Exception as e:  # noqa: BLE001
     vision_router = None
     logger.warning("Vision module router unavailable: %s", e)
+
+try:
+    # Only the lightweight Qdrant client wiring — deliberately NOT
+    # rag.embedding, which would load the ~130MB BGE transformer model into
+    # memory just to report its name/dimension in a status endpoint.
+    from rag.qdrant_store import get_qdrant_client, COLLECTION_NAME as RAG_COLLECTION_NAME, EMBEDDING_DIM as RAG_EMBEDDING_DIM
+except Exception as e:  # noqa: BLE001
+    get_qdrant_client = None
+    logger.warning("RAG/Qdrant module unavailable: %s", e)
 
 # ── PostgreSQL Database Integration ──────────────────────────────────────────
 try:
@@ -216,7 +241,7 @@ FRONTEND_MODELS = [
     {
         "id": "document-vision-analyst",
         "name": "Document Vision Analyst",
-        "backendModel": "qwen2-vl:7b",
+        "backendModel": "qwen2.5vl:3b",
         "badge": "Vision & Multimodal",
         "description": "Contract audit, multi-document synthesis & inspection diagram analysis.",
         "code": "VIS",
@@ -628,6 +653,7 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
             async with factory() as session:
                 # Ensure user exists for foreign key constraint
                 try:
+                    from sqlalchemy import select
                     from database.models.user import User
                     u_stmt = select(User).where(User.username == clean_user)
                     u_res = await session.execute(u_stmt)
@@ -703,14 +729,13 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
         try:
             result = await asyncio.to_thread(
                 brain_graph.invoke,
-                {"messages": [{"role": "user", "content": orchestrator_message}]},
                 {
-                    "configurable": {
-                        "thread_id": conversation_id,
-                        "selected_model": payload.model,
-                        "attachments": attachments,
-                    }
+                    "messages": [{"role": "user", "content": orchestrator_message}],
+                    "selected_model": payload.model,
+                    "attachments": attachments,
+                    "thread_id": conversation_id,
                 },
+                {"configurable": {"thread_id": conversation_id}},
             )
             response_text = result["messages"][-1].content
             latency = round((time.time() - start_time) * 1000, 2)
@@ -733,7 +758,13 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
                 response_text=response_text,
             )
         except Exception as exc:
-            logger.warning("brain graph invocation failed, falling back to raw Ollama: %s", exc)
+            # Full traceback (not just the exception's one-line str()) so a
+            # real bug in the orchestrator graph is actually visible in the
+            # terminal instead of silently degrading every request to the
+            # no-tools raw-Ollama fallback below (which can't generate
+            # files, run code, or search RAG at all) with no other sign
+            # anything went wrong.
+            logger.error("brain graph invocation failed, falling back to raw Ollama (no tools available in this path):", exc_info=True)
 
     # 2. Fallback Specialist Re-routing: Coding Specialist (only reached when
     #    the orchestrator above is unavailable or failed)
@@ -948,14 +979,6 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
         response_text=response_text,
     )
 
-    return ChatResponse(
-        status="success",
-        success=True,
-        conversation_id=conversation_id,
-        model_used=target_model,
-        response_text=response_text,
-    )
-
 @app.post("/api/v1/chat/stream", tags=["Chat"])
 async def handle_chat_stream(payload: ChatMessagePayload, request: Request):
     """
@@ -984,18 +1007,17 @@ async def handle_chat_stream(payload: ChatMessagePayload, request: Request):
             try:
                 result = await asyncio.to_thread(
                     brain_graph.invoke,
-                    {"messages": [{"role": "user", "content": orchestrator_message}]},
                     {
-                        "configurable": {
-                            "thread_id": conversation_id,
-                            "selected_model": payload.model,
-                            "attachments": attachments,
-                        }
+                        "messages": [{"role": "user", "content": orchestrator_message}],
+                        "selected_model": payload.model,
+                        "attachments": attachments,
+                        "thread_id": conversation_id,
                     },
+                    {"configurable": {"thread_id": conversation_id}},
                 )
                 yield result["messages"][-1].content
             except Exception as exc:
-                logger.warning("brain graph streaming failed: %s", exc)
+                logger.error("brain graph streaming failed, falling back to raw Ollama (no tools available in this path):", exc_info=True)
                 target_model = await resolve_local_model(payload.model, client)
                 async for token in generate_ollama_stream(
                     prompt=payload.message,
@@ -1092,6 +1114,12 @@ async def transcribe(file: UploadFile = File(...)):
 
     try:
         text = await asyncio.to_thread(transcribe_audio, str(tmp_path))
+    except TranscriberBusyError:
+        # Another transcription (the previous interim/final call) is still
+        # running — fail fast instead of queuing behind it, so the caller
+        # can just retry on the next cycle rather than piling up requests
+        # that compound into an ever-growing backlog.
+        raise HTTPException(status_code=429, detail="Transcriber is busy, try again shortly.")
     finally:
         tmp_path.unlink(missing_ok=True)
 
@@ -1224,6 +1252,33 @@ async def upload_document(
         "success": True,
         **new_doc,
     }
+
+@app.delete("/api/v1/documents/{doc_id}", tags=["Documents"])
+async def delete_document_endpoint(doc_id: str):
+    """
+    Delete an uploaded/indexed document — removes it from the in-memory
+    catalog and, if the database is available, the persisted record and its
+    RAG chunks (cascade). Does not delete the underlying file on disk, since
+    other conversations may still reference the same local_path.
+    """
+    global DOCUMENT_STORE
+    existing = next((d for d in DOCUMENT_STORE if d.get("id") == doc_id), None)
+    DOCUMENT_STORE = [d for d in DOCUMENT_STORE if d.get("id") != doc_id]
+
+    db_deleted = False
+    if database_available:
+        try:
+            factory = get_session_factory()
+            async with factory() as session:
+                db_deleted = await DocumentRepository.delete_document(session, doc_id)
+                await session.commit()
+        except Exception as exc:
+            logger.debug("Document delete in PostgreSQL skipped: %s", exc)
+
+    if existing is None and not db_deleted:
+        raise HTTPException(status_code=404, detail=f"No document found with id '{doc_id}'.")
+
+    return {"status": "success", "success": True, "deleted_id": doc_id}
 
 @app.post("/api/v1/documents/generate-word", tags=["Documents"])
 async def generate_word_document(payload: Optional[GenerateWordPayload] = None):
@@ -1580,6 +1635,45 @@ async def database_status():
     if not database_available:
         return {"status": "disabled", "message": "Database module is not available."}
     return await check_db_connection()
+
+
+@app.get("/api/v1/rag/status", tags=["Database"])
+async def rag_status():
+    """
+    Live local Qdrant knowledge-base status — real point/chunk count and
+    collection name, not a hardcoded placeholder. Backs the Knowledge Base
+    workspace view and the Vector Index drawer in the frontend.
+    """
+    if get_qdrant_client is None:
+        return {
+            "status": "unavailable",
+            "message": "RAG module could not be imported (qdrant-client not installed?).",
+        }
+    try:
+        client = get_qdrant_client()
+        collections = [c.name for c in client.get_collections().collections]
+        if RAG_COLLECTION_NAME not in collections:
+            return {
+                "status": "empty",
+                "collection": RAG_COLLECTION_NAME,
+                "chunk_count": 0,
+                "embedding_model": "BAAI/bge-small-en-v1.5",
+                "embedding_dim": RAG_EMBEDDING_DIM,
+                "vector_db": "Qdrant (local, embedded)",
+                "message": "No documents indexed yet — run `python -m rag.parsing` in BACKEND/.",
+            }
+        info = client.get_collection(RAG_COLLECTION_NAME)
+        return {
+            "status": "ready",
+            "collection": RAG_COLLECTION_NAME,
+            "chunk_count": info.points_count,
+            "embedding_model": "BAAI/bge-small-en-v1.5",
+            "embedding_dim": RAG_EMBEDDING_DIM,
+            "vector_db": "Qdrant (local, embedded)",
+        }
+    except Exception as exc:
+        logger.warning("RAG status check failed: %s", exc)
+        return {"status": "error", "message": str(exc)}
 
 
 @app.get("/api/v1/chat/history/{conversation_id}", tags=["Chat"])

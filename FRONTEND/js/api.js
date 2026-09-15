@@ -85,12 +85,16 @@ const api = {
    */
   async deleteDocument(docId) {
     try {
-      const res = await fetch(`${CONFIG.API_BASE_URL}/api/v1/documents/${docId}`, {
+      // CONFIG.API_BASE_URL already ends in /api/v1 — do not repeat it here
+      // (a doubled /api/v1/api/v1/... prefix silently 404'd every call,
+      // masked by the local-only fallback below).
+      const res = await fetch(`${CONFIG.API_BASE_URL}/documents/${docId}`, {
         method: 'DELETE'
       });
       if (res.ok) {
         return await res.json();
       }
+      console.warn(`[API] Delete document returned ${res.status} for ${docId}`);
     } catch (err) {
       console.warn('[API] Could not delete document on backend endpoint:', err);
     }
@@ -130,6 +134,37 @@ const api = {
     }
 
     return res.json();
+  },
+
+  /**
+   * Combined live system status: Ollama reachability + installed models,
+   * database connectivity, indexed document count. Backs the Settings view.
+   * Endpoint: GET /api/v1/system/status
+   */
+  async getSystemStatus() {
+    try {
+      const res = await fetch(`${CONFIG.API_BASE_URL}/system/status`);
+      if (res.ok) return await res.json();
+    } catch (err) {
+      console.warn('[API] System status fetch failed:', err);
+    }
+    return null;
+  },
+
+  /**
+   * Live local Qdrant knowledge-base status (real chunk count, embedding
+   * model, collection name) -- backs the Knowledge Base view and the
+   * Vector Index drawer instead of a hardcoded placeholder number.
+   * Endpoint: GET /api/v1/rag/status
+   */
+  async getRagStatus() {
+    try {
+      const res = await fetch(`${CONFIG.API_BASE_URL}/rag/status`);
+      if (res.ok) return await res.json();
+    } catch (err) {
+      console.warn('[API] RAG status fetch failed:', err);
+    }
+    return { status: 'unavailable' };
   },
 
   /**

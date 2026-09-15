@@ -241,6 +241,42 @@ class AppState {
   }
 
   /**
+   * Renames the current session's Task History entry from its generic
+   * "New Session" placeholder to something derived from the user's actual
+   * first message — otherwise every session shows up identically in Task
+   * History with no way to tell them apart. Creates the entry if none
+   * exists yet (true first-ever launch: currentChatId defaults to
+   * 'chat-001' before any session has been explicitly started). A no-op
+   * once a session already has a real title, so later messages don't keep
+   * overwriting it.
+   */
+  autoTitleCurrentSession(firstMessageText) {
+    const shortTitle = (firstMessageText || '').trim().slice(0, 60) +
+      (firstMessageText.trim().length > 60 ? '…' : '');
+    if (!shortTitle) return;
+
+    const todayLabel = new Date().toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+    const conv = this.conversations.find(c => c.id === this.currentChatId);
+
+    if (conv) {
+      if (conv.title !== 'New Session') return; // already has a real title
+      conv.title = shortTitle;
+      conv.subtitle = `${this.getSelectedModel().name} session`;
+      conv.date = todayLabel;
+    } else {
+      this.conversations.unshift({
+        id: this.currentChatId,
+        title: shortTitle,
+        subtitle: `${this.getSelectedModel().name} session`,
+        date: todayLabel,
+        active: true,
+        modelId: this.activeModelId
+      });
+    }
+    this.saveState();
+  }
+
+  /**
    * Clear active session messages
    */
   clearCurrentMessages() {

@@ -72,3 +72,9 @@ piper-tts
 docxtpl
 openpyxl
 python-pptx
+
+# Database (PostgreSQL primary via asyncpg, SQLite fallback via aiosqlite)
+sqlalchemy[asyncio]>=2.0.0
+asyncpg
+aiosqlite
+python-dotenv

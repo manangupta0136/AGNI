@@ -1,5 +1,12 @@
 __pycache__/
 *.pyc
+.venv/
+BACKEND/.venv/
+venv/
+BACKEND/voice_command/voices/
+.env
+*.env
+!.env.example
 vision_uploads/
 BACKEND/data/
 node_modules/

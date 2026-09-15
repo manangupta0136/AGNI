@@ -20,6 +20,9 @@ const ui = {
     fileXlsx: `<svg class="w-3.5 h-3.5 text-emerald-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
     fileDocx: `<svg class="w-3.5 h-3.5 text-[#3F641C] dark:text-[#88B83E] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>`,
     fileZip: `<svg class="w-3.5 h-3.5 text-amber-600 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 8h14M5 8a2 2 0 01-2-2V5a2 2 0 012-2h14a2 2 0 012 2v1a2 2 0 01-2 2M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4"/></svg>`,
+    openFile: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>`,
+    speaker: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5L6 9H2v6h4l5 4V5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072M18.364 5.636a9 9 0 010 12.728"/></svg>`,
+    speakerLoading: `<svg class="w-3.5 h-3.5 shrink-0 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>`,
     lock: `<svg class="w-3.5 h-3.5 text-[#3F641C] dark:text-[#A8D66D] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>`,
     send: `<svg class="w-3.5 h-3.5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg>`,
     stop: `<svg class="w-3.5 h-3.5 shrink-0" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="2"/></svg>`,
@@ -66,40 +69,13 @@ const ui = {
     }
   },
 
-  renderModels() {
-    const container = document.getElementById('model-list-container');
-    if (!container) return;
-
-    container.innerHTML = CONFIG.MODELS.map(m => {
-      const isActive = m.id === state.activeModelId;
-      return `
-        <button 
-          type="button" 
-          onclick="window.MRPLApp.switchModel('${m.id}')"
-          class="w-full text-left p-2.5 rounded-md border transition-all duration-150 flex items-start space-x-2.5 cursor-pointer relative group ${
-            isActive 
-              ? 'bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#20251D] dark:text-[#E8EBDD] border-[#3F641C] dark:border-[#88B83E] font-medium shadow-2xs' 
-              : 'bg-white text-[#20251D] dark:bg-[#171B19] dark:text-[#E8EBDD] border-[#D6DDC9] dark:border-[#34422B] hover:bg-[#F9FAF6] dark:hover:bg-[#1C201E]'
-          }"
-        >
-          <span class="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0 ${
-            isActive 
-              ? 'bg-[#3F641C] text-white dark:bg-[#3F641C] dark:text-white' 
-              : 'bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D]'
-          }">${m.code}</span>
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between">
-              <span class="text-xs font-semibold truncate">${m.name}</span>
-              ${isActive ? '<span class="w-2 h-2 rounded-full bg-[#3F641C] dark:bg-[#88B83E] shrink-0 ml-1"></span>' : ''}
-            </div>
-            <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6] truncate mt-0.5">${m.badge}</p>
-          </div>
-        </button>
-      `;
-    }).join('');
-
-    this.updateHeaderModelBadge();
-  },
+  // NOTE: there used to be a renderModels() here targeting a
+  // '#model-list-container' element that doesn't exist anywhere in
+  // index.html — a dead no-op on every call, including its
+  // updateHeaderModelBadge() call at the end, which never ran either. The
+  // real, visible model switcher lives in the right panel (see
+  // renderRightPanels() below), which now also carries the header-badge
+  // update since that's the code path that actually executes.
 
   renderDocuments(initialHydrate = false) {
     const container = document.getElementById('document-list-container');
@@ -137,20 +113,29 @@ const ui = {
       return;
     }
 
-    container.innerHTML = filteredDocs.map(d => `
-      <div 
+    container.innerHTML = filteredDocs.map(d => this.documentCardHtml(d)).join('');
+
+    this.renderContextChips(initialHydrate);
+    this.renderDrawerDocuments();
+  },
+
+  /** Shared document-card markup used by both the sidebar list and the
+   * full Documents workspace view, so the two never drift apart. */
+  documentCardHtml(d) {
+    return `
+      <div
         id="doc-card-${d.id}"
         class="flex items-center justify-between p-2 rounded-md cursor-pointer border text-xs transition-all duration-150 relative group ${
-          d.active 
-            ? 'bg-[#EEF5E5]/70 dark:bg-[#1F2B18]/70 border-[#3F641C] dark:border-[#88B83E] font-medium shadow-2xs' 
+          d.active
+            ? 'bg-[#EEF5E5]/70 dark:bg-[#1F2B18]/70 border-[#3F641C] dark:border-[#88B83E] font-medium shadow-2xs'
             : 'bg-white dark:bg-[#171B19] border-[#D6DDC9] dark:border-[#34422B] hover:bg-[#F9FAF6] dark:hover:bg-[#1C201E]'
         }"
         onclick="window.MRPLApp.toggleDocumentSelection('${d.id}')"
       >
         <div class="flex items-center space-x-2 min-w-0 pr-1 flex-1">
-          <input 
-            type="checkbox" 
-            ${d.active ? 'checked' : ''} 
+          <input
+            type="checkbox"
+            ${d.active ? 'checked' : ''}
             class="w-3.5 h-3.5 text-[#3F641C] accent-[#3F641C] rounded border-[#D6DDC9] dark:border-[#34422B] focus:ring-[#3F641C] cursor-pointer shrink-0"
             onclick="event.stopPropagation(); window.MRPLApp.toggleDocumentSelection('${d.id}')"
           />
@@ -160,8 +145,8 @@ const ui = {
             <p class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6] truncate">${d.size} • ${d.category}</p>
           </div>
         </div>
-        <button 
-          type="button" 
+        <button
+          type="button"
           onclick="event.stopPropagation(); window.MRPLApp.deleteDocument('${d.id}')"
           class="p-1 text-[#5C6654] hover:text-red-600 dark:hover:text-red-400 rounded cursor-pointer shrink-0 transition-colors"
           title="Delete document"
@@ -169,10 +154,7 @@ const ui = {
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
         </button>
       </div>
-    `).join('');
-
-    this.renderContextChips(initialHydrate);
-    this.renderDrawerDocuments();
+    `;
   },
 
   renderContextChips(initialHydrate = false) {
@@ -241,7 +223,7 @@ const ui = {
           <span class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6]">${d.size} • ${d.pages} pages</span>
         </div>
         <p class="text-xs font-semibold text-[#20251D] dark:text-[#E8EBDD] mt-2 truncate">${d.title}</p>
-        <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6] mt-1">ChromaDB Chunk Index: Ready</p>
+        <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6] mt-1">Qdrant Chunk Index: Ready</p>
       </div>
     `).join('');
   },
@@ -269,6 +251,43 @@ const ui = {
       case 'DOCX': return this.icons.fileDocx;
       case 'ZIP': return this.icons.fileZip;
       default: return this.icons.filePdf;
+    }
+  },
+
+  // Matches an absolute local filesystem path (macOS/Linux style, starting
+  // with "/") ending in a document extension the backend's generation tools
+  // (pdf_tool/docx_tool/pptx_tool) or an uploaded attachment can produce —
+  // used to offer a real "Open file" button instead of leaving the user to
+  // copy/paste a path into Finder manually. Tried in order: backtick-
+  // delimited and bracketed-tool-result forms first (both tolerate spaces
+  // in the filename), then a bare-path fallback that stops at whitespace.
+  FILE_PATH_PATTERNS: [
+    /`(\/[^`]+\.(?:pptx|docx|pdf|xlsx|csv))`/gi,
+    /\bat:?\s+(\/[^\]\n]+\.(?:pptx|docx|pdf|xlsx|csv))\]/gi,
+    /(\/[^\s`'"()\[\]<>]+\.(?:pptx|docx|pdf|xlsx|csv))\b/gi,
+  ],
+
+  extractFilePaths(text) {
+    if (!text || typeof text !== 'string') return [];
+    const found = [];
+    for (const re of this.FILE_PATH_PATTERNS) {
+      re.lastIndex = 0;
+      let match;
+      while ((match = re.exec(text)) !== null) {
+        found.push(match[1]);
+      }
+    }
+    return [...new Set(found)];
+  },
+
+  // Round-trips a filesystem path through base64 so it can sit safely inside
+  // an inline onclick="..." HTML attribute regardless of quotes, backslashes,
+  // or unicode characters in the path — decoded on the other end in app.js.
+  encodePathForAttr(path) {
+    try {
+      return btoa(unescape(encodeURIComponent(path)));
+    } catch (e) {
+      return btoa(path.replace(/[^\x00-\xFF]/g, '_'));
     }
   },
 
@@ -352,6 +371,7 @@ const ui = {
         `;
       } else {
         const formattedContent = this.parseMarkdown(m.text) + (m.isStreaming ? '<span class="streaming-cursor"></span>' : '');
+        const filePaths = m.isStreaming ? [] : this.extractFilePaths(m.text);
         return `
           <div class="mb-5">
             <div class="bg-white dark:bg-[#1C201E] border border-[#D6DDC9] dark:border-[#2D3827] rounded-lg p-4 shadow-xs">
@@ -366,10 +386,26 @@ const ui = {
                 </div>
                 <span class="text-[10px] text-[#5C6654] dark:text-[#AEB5A6] font-mono">${m.timestamp}</span>
               </div>
-              
+
               <div id="content-${m.id}" class="prose-ai text-xs text-[#20251D] dark:text-[#E8EBDD] leading-relaxed">
                 ${formattedContent}
               </div>
+
+              ${filePaths.length > 0 ? `
+                <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-[#EAEFE2] dark:border-[#2D3827]">
+                  ${filePaths.map(p => `
+                    <button
+                      type="button"
+                      onclick="window.MRPLApp.openGeneratedFile('${this.encodePathForAttr(p)}')"
+                      class="px-2.5 py-1 rounded border border-[#C3D9AA] dark:border-[#34422B] bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] hover:bg-[#DCEBC7] dark:hover:bg-[#28351F] cursor-pointer flex items-center space-x-1.5 transition-colors text-xs font-medium"
+                      title="${this.escapeHtml(p)}"
+                    >
+                      ${this.icons.openFile}
+                      <span>Open ${this.escapeHtml(p.split('/').pop())}</span>
+                    </button>
+                  `).join('')}
+                </div>
+              ` : ''}
 
               ${!m.isStreaming ? `
                 <div class="flex items-center justify-between pt-3 mt-3 border-t border-[#EAEFE2] dark:border-[#2D3827] text-xs text-[#5C6654] dark:text-[#AEB5A6]">
@@ -382,13 +418,23 @@ const ui = {
                       ${this.icons.copy}
                       <span>Copy</span>
                     </button>
-                    <button 
-                      type="button" 
+                    <button
+                      type="button"
                       onclick="window.MRPLApp.regenerate()"
                       class="px-2.5 py-1 rounded border border-[#D6DDC9] dark:border-[#34422B] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] hover:text-[#3F641C] dark:hover:text-[#A8D66D] cursor-pointer flex items-center space-x-1.5 transition-colors"
                     >
                       ${this.icons.refresh}
                       <span>Regenerate</span>
+                    </button>
+                    <button
+                      type="button"
+                      id="speak-btn-${m.id}"
+                      onclick="window.MRPLApp.speakMessage('${m.id}')"
+                      class="px-2.5 py-1 rounded border border-[#D6DDC9] dark:border-[#34422B] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] hover:text-[#3F641C] dark:hover:text-[#A8D66D] cursor-pointer flex items-center space-x-1.5 transition-colors"
+                      title="Read this response aloud (Piper, on-device)"
+                    >
+                      ${this.icons.speaker}
+                      <span>Speak</span>
                     </button>
                   </div>
                   <div class="flex items-center space-x-3">
@@ -689,6 +735,11 @@ const ui = {
    * Render Right Information / System Panels
    */
   renderRightPanels() {
+    // Keeps the "Model: <name>" badge in the workspace sub-header in sync —
+    // this used to live inside a dead renderModels() function that never
+    // actually ran (see the note above), so the badge never updated at all.
+    this.updateHeaderModelBadge();
+
     // 1. Model Orchestrator Panel
     const modelsContainer = document.getElementById('right-panel-models-list');
     if (modelsContainer) {
@@ -746,6 +797,115 @@ const ui = {
     }
   },
 
+  /** Model card with a real install-status badge, used by the Model Hub
+   * workspace view. `liveInfo` is the matching entry from api.getModels()
+   * once it resolves (has `.installed_locally`); undefined while loading
+   * or if the fetch failed, in which case we show a neutral state instead
+   * of guessing. */
+  modelCardHtml(m, liveInfo) {
+    let badge;
+    if (!liveInfo || typeof liveInfo.installed_locally !== 'boolean') {
+      badge = `<span class="text-[10px] bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 px-2 py-0.5 rounded border border-gray-300 dark:border-gray-700 font-semibold">Checking…</span>`;
+    } else if (liveInfo.installed_locally) {
+      badge = `<span class="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-300 font-semibold">Installed</span>`;
+    } else {
+      badge = `<span class="text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 px-2 py-0.5 rounded border border-amber-300 font-semibold" title="Run: ollama pull ${m.backendModel}">Not Pulled</span>`;
+    }
+    const isActive = m.id === state.activeModelId;
+    return `
+      <div id="model-card-${m.id}" class="p-4 rounded-md border ${isActive ? 'border-[#3F641C] dark:border-[#88B83E] bg-[#F9FAF6] dark:bg-[#1F2B18]/40' : 'border-[#D6DDC9] dark:border-[#283623] bg-[#F9FAF6] dark:bg-[#171B19]'} flex items-center justify-between">
+        <div class="min-w-0 pr-3">
+          <div class="flex items-center space-x-2 flex-wrap gap-y-1">
+            <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B]">${m.code}</span>
+            <h4 class="font-bold text-xs text-[#20251D] dark:text-[#E8EBDD]">${m.name}</h4>
+            ${badge}
+          </div>
+          <p class="text-xs text-[#5C6654] dark:text-[#AEB5A6] mt-1">${m.description}</p>
+          <p class="text-[11px] font-mono text-[#3F641C] dark:text-[#A8D66D] mt-1">Backend: ${m.backendModel}</p>
+        </div>
+        <button type="button" onclick="window.MRPLApp.switchModel('${m.id}')" class="px-3 py-1 ${isActive ? 'bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] border border-[#3F641C] dark:border-[#88B83E]' : 'bg-[#3F641C] hover:bg-[#304D16] text-white'} text-xs font-semibold rounded cursor-pointer shrink-0">
+          ${isActive ? 'Selected' : 'Select Model'}
+        </button>
+      </div>
+    `;
+  },
+
+  /** Fetches real Ollama install status and re-renders the Model Hub cards
+   * in place once it resolves — cards start in a neutral "Checking…" state
+   * so there's no flash of a wrong "Not Pulled" badge before data arrives. */
+  async loadModelInstallStatus() {
+    try {
+      const models = await api.getModels();
+      const container = document.getElementById('models-view-list');
+      if (!container || !Array.isArray(models)) return; // view was navigated away from, or fetch fell all the way back
+      const byId = new Map(models.map(m => [m.id, m]));
+      container.innerHTML = CONFIG.MODELS.map(m => this.modelCardHtml(m, byId.get(m.id))).join('');
+    } catch (err) {
+      console.warn('[UI] Could not load model install status:', err);
+    }
+  },
+
+  /** Fetches the real local Qdrant collection stats and fills in the
+   * Knowledge Base view's metric tiles, replacing the "Loading…" placeholder. */
+  async loadKnowledgeStats() {
+    const container = document.getElementById('knowledge-stats-container');
+    if (!container) return;
+    try {
+      const stats = await api.getRagStatus();
+      if (stats.status === 'ready' || stats.status === 'empty') {
+        container.innerHTML = `
+          <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs">
+            <span class="text-[10px] font-mono uppercase text-[#3F641C] dark:text-[#A8D66D] font-bold block">Total Chunks</span>
+            <span class="text-lg font-extrabold text-[#20251D] dark:text-[#E8EBDD]">${(stats.chunk_count || 0).toLocaleString()}</span>
+          </div>
+          <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs">
+            <span class="text-[10px] font-mono uppercase text-[#3F641C] dark:text-[#A8D66D] font-bold block">Embedding Model</span>
+            <span class="text-xs font-semibold text-[#20251D] dark:text-[#E8EBDD]">${this.escapeHtml(stats.embedding_model || 'BAAI/bge-small-en-v1.5')}</span>
+          </div>
+          <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs">
+            <span class="text-[10px] font-mono uppercase text-[#3F641C] dark:text-[#A8D66D] font-bold block">Vector Store</span>
+            <span class="text-xs font-semibold text-[#20251D] dark:text-[#E8EBDD]">${this.escapeHtml(stats.vector_db || 'Qdrant (local)')}</span>
+          </div>
+          ${stats.status === 'empty' ? `<div class="sm:col-span-3 text-[11px] text-amber-700 dark:text-amber-400 mt-1">${this.escapeHtml(stats.message || 'No documents indexed yet.')}</div>` : ''}
+        `;
+      } else {
+        container.innerHTML = `
+          <div class="sm:col-span-3 p-3 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded text-xs text-amber-800 dark:text-amber-300">
+            Could not reach the RAG status endpoint. ${this.escapeHtml(stats.message || 'Is the backend running?')}
+          </div>
+        `;
+      }
+    } catch (err) {
+      console.warn('[UI] Could not load knowledge base stats:', err);
+    }
+  },
+
+  /** Fetches live Ollama/database/RAG status for the Settings view. */
+  async loadSettingsStatus() {
+    const el = document.getElementById('settings-live-status');
+    if (!el) return;
+    try {
+      const [sys, rag] = await Promise.all([api.getSystemStatus(), api.getRagStatus()]);
+      const lines = [];
+      if (sys) {
+        const modelsList = sys.ollama_models || [];
+        lines.push(`Ollama: ${modelsList.length > 0 ? `${modelsList.length} model(s) installed (${modelsList.join(', ')})` : 'not reachable'}`);
+        const db = sys.database;
+        lines.push(`Database: ${db && db.status === 'connected' ? `connected (${db.active_db}, ${db.latency_ms}ms)` : (db ? db.status : 'unavailable')}`);
+        lines.push(`Indexed documents: ${sys.indexed_documents_count ?? 'n/a'}`);
+      } else {
+        lines.push(`Backend unreachable at ${CONFIG.API_BASE_URL}`);
+      }
+      if (rag) {
+        lines.push(`RAG knowledge base: ${rag.status === 'ready' ? `${rag.chunk_count} chunks indexed` : (rag.status === 'empty' ? 'no documents indexed yet' : (rag.message || rag.status))}`);
+      }
+      el.innerHTML = lines.map(l => `<div>${this.escapeHtml(l)}</div>`).join('');
+    } catch (err) {
+      el.textContent = 'Could not reach backend status endpoints.';
+      console.warn('[UI] Settings status load failed:', err);
+    }
+  },
+
   /**
    * Switch View in Central Workspace based on Nav ID
    */
@@ -776,45 +936,47 @@ const ui = {
     let contentHtml = '';
 
     switch (navId) {
-      case 'documents':
+      case 'documents': {
         title = 'Document Context & OCR Index';
+        const docs = state.documents || [];
         contentHtml = `
           <div class="space-y-4 max-w-4xl mx-auto py-4">
             <div class="bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] rounded-lg p-5">
-              <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] uppercase tracking-wider mb-2">Document Context Management</h3>
-              <p class="text-xs text-[#5C6654] dark:text-[#AEB5A6] leading-relaxed mb-4">Upload and select confidential refinery documents (PDF, XLSX, DOCX, ZIP) for offline RAG indexing in local ChromaDB.</p>
+              <div class="flex items-center justify-between mb-2">
+                <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] uppercase tracking-wider">Document Context Management</h3>
+                <button type="button" onclick="document.getElementById('sidebar-file-input').click()" class="px-3 py-1.5 bg-[#3F641C] hover:bg-[#304D16] text-white text-xs font-semibold rounded cursor-pointer flex items-center space-x-1.5 shrink-0">
+                  ${this.icons.upload}
+                  <span>Upload Document</span>
+                </button>
+              </div>
+              <p class="text-xs text-[#5C6654] dark:text-[#AEB5A6] leading-relaxed mb-4">Upload and select confidential refinery documents (PDF, DOCX, TXT) for offline OCR and Qdrant RAG indexing. Checking a document makes it part of the active chat context.</p>
               <div id="documents-view-list" class="space-y-2">
-                <!-- Document Cards -->
+                ${docs.length === 0
+                  ? `<div class="text-center py-6 text-xs text-[#5C6654] dark:text-[#AEB5A6]">No documents uploaded yet. Click <strong>Upload Document</strong> above to add one.</div>`
+                  : docs.map(d => this.documentCardHtml(d)).join('')}
               </div>
             </div>
           </div>
         `;
         break;
+      }
 
       case 'knowledge':
-        title = 'ChromaDB Vector Store';
+        title = 'Qdrant Vector Store';
         contentHtml = `
           <div class="space-y-4 max-w-4xl mx-auto py-4">
             <div class="bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] rounded-lg p-5">
               <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] uppercase tracking-wider mb-2">On-Premise Vector Database Metrics</h3>
-              <p class="text-xs text-[#5C6654] dark:text-[#AEB5A6] leading-relaxed mb-4">Local sentence-transformers embedding database operating air-gapped on PSU infrastructure.</p>
-              <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs">
-                  <span class="text-[10px] font-mono uppercase text-[#3F641C] dark:text-[#A8D66D] font-bold block">Total Chunks</span>
-                  <span class="text-lg font-extrabold text-[#20251D] dark:text-[#E8EBDD]">3,420</span>
-                </div>
-                <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs">
-                  <span class="text-[10px] font-mono uppercase text-[#3F641C] dark:text-[#A8D66D] font-bold block">Embedding Model</span>
-                  <span class="text-xs font-semibold text-[#20251D] dark:text-[#E8EBDD]">all-MiniLM-L6-v2</span>
-                </div>
-                <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs">
-                  <span class="text-[10px] font-mono uppercase text-[#3F641C] dark:text-[#A8D66D] font-bold block">Latency</span>
-                  <span class="text-xs font-semibold text-[#20251D] dark:text-[#E8EBDD]">&lt; 12ms (Offline)</span>
+              <p class="text-xs text-[#5C6654] dark:text-[#AEB5A6] leading-relaxed mb-4">Local embedded Qdrant instance, air-gapped on PSU infrastructure — no server process, no network calls.</p>
+              <div id="knowledge-stats-container" class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs col-span-3">
+                  <span class="text-xs font-semibold text-[#5C6654] dark:text-[#AEB5A6]">Loading live index status…</span>
                 </div>
               </div>
             </div>
           </div>
         `;
+        this.loadKnowledgeStats();
         break;
 
       case 'models':
@@ -823,27 +985,13 @@ const ui = {
           <div class="space-y-4 max-w-4xl mx-auto py-4">
             <div class="bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] rounded-lg p-5">
               <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] uppercase tracking-wider mb-2">Configured On-Premise LLM Models</h3>
-              <div class="space-y-3 mt-4">
-                ${CONFIG.MODELS.map(m => `
-                  <div class="p-4 rounded-md border border-[#D6DDC9] dark:border-[#283623] bg-[#F9FAF6] dark:bg-[#171B19] flex items-center justify-between">
-                    <div>
-                      <div class="flex items-center space-x-2">
-                        <span class="font-mono text-xs font-bold px-2 py-0.5 rounded bg-[#EEF5E5] dark:bg-[#1F2B18] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B]">${m.code}</span>
-                        <h4 class="font-bold text-xs text-[#20251D] dark:text-[#E8EBDD]">${m.name}</h4>
-                        <span class="text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 px-2 py-0.5 rounded border border-emerald-300 font-semibold">Active</span>
-                      </div>
-                      <p class="text-xs text-[#5C6654] dark:text-[#AEB5A6] mt-1">${m.description}</p>
-                      <p class="text-[11px] font-mono text-[#3F641C] dark:text-[#A8D66D] mt-1">Backend: ${m.backendModel}</p>
-                    </div>
-                    <button type="button" onclick="window.MRPLApp.switchModel('${m.id}')" class="px-3 py-1 bg-[#3F641C] hover:bg-[#304D16] text-white text-xs font-semibold rounded cursor-pointer">
-                      Select Model
-                    </button>
-                  </div>
-                `).join('')}
+              <div id="models-view-list" class="space-y-3 mt-4">
+                ${CONFIG.MODELS.map(m => this.modelCardHtml(m)).join('')}
               </div>
             </div>
           </div>
         `;
+        this.loadModelInstallStatus();
         break;
 
       case 'tools':
@@ -875,13 +1023,15 @@ const ui = {
             <div class="bg-white dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#283623] rounded-lg p-5">
               <h3 class="text-sm font-extrabold text-[#20251D] dark:text-[#E8EBDD] uppercase tracking-wider mb-2">Recent Sessions</h3>
               <div class="space-y-2 mt-4">
-                ${state.conversations.map(c => `
+                ${state.conversations.length === 0
+                  ? `<div class="text-center py-6 text-xs text-[#5C6654] dark:text-[#AEB5A6]">No past sessions yet. Click <strong>New Chat Session</strong> in the sidebar to start one.</div>`
+                  : state.conversations.map(c => `
                   <div onclick="window.MRPLApp.selectSession('${c.id}')" class="p-3 rounded border border-[#D6DDC9] dark:border-[#283623] bg-[#F9FAF6] dark:bg-[#171B19] hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] cursor-pointer flex items-center justify-between">
                     <div>
-                      <h4 class="font-semibold text-xs text-[#20251D] dark:text-[#E8EBDD]">${c.title}</h4>
-                      <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6]">${c.subtitle}</p>
+                      <h4 class="font-semibold text-xs text-[#20251D] dark:text-[#E8EBDD]">${this.escapeHtml(c.title)}</h4>
+                      <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6]">${this.escapeHtml(c.subtitle || '')}</p>
                     </div>
-                    <span class="text-[10px] font-mono text-[#8A9581] dark:text-[#6E7B68]">${c.date}</span>
+                    <span class="text-[10px] font-mono text-[#8A9581] dark:text-[#6E7B68]">${this.escapeHtml(c.date || '')}</span>
                   </div>
                 `).join('')}
               </div>
@@ -907,10 +1057,17 @@ const ui = {
                     Air-Gapped PSU Enterprise Infrastructure (Strictly Offline)
                   </div>
                 </div>
+                <div>
+                  <label class="block text-[11px] font-semibold text-[#5C6654] dark:text-[#AEB5A6] mb-1">Live Backend Status</label>
+                  <div id="settings-live-status" class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-xs text-[#3F641C] dark:text-[#A8D66D] font-mono">
+                    Checking Ollama, database, and RAG connectivity…
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         `;
+        this.loadSettingsStatus();
         break;
     }
 

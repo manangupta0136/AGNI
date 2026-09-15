@@ -13,7 +13,22 @@ QDRANT_PATH = str(Path(__file__).parent.parent / "data" / "qdrant_db")   # persi
 COLLECTION_NAME = "mrpl_knowledge_base"
 EMBEDDING_DIM = 384                 # bge-small-en-v1.5 output dimension
 
-client = QdrantClient(path=QDRANT_PATH)
+_client = None
+
+
+def get_qdrant_client() -> QdrantClient:
+    global _client
+    if _client is None:
+        _client = QdrantClient(path=QDRANT_PATH)
+    return _client
+
+
+class _LazyClientProxy:
+    def __getattr__(self, name):
+        return getattr(get_qdrant_client(), name)
+
+
+client = _LazyClientProxy()
 
 
 def ensure_collection():
@@ -21,9 +36,10 @@ def ensure_collection():
     Creates the collection if it doesn't already exist. Safe to call every
     time — it checks first rather than blindly recreating.
     """
-    existing = [c.name for c in client.get_collections().collections]
+    q_client = get_qdrant_client()
+    existing = [c.name for c in q_client.get_collections().collections]
     if COLLECTION_NAME not in existing:
-        client.create_collection(
+        q_client.create_collection(
             collection_name=COLLECTION_NAME,
             vectors_config=VectorParams(size=EMBEDDING_DIM, distance=Distance.COSINE),
         )

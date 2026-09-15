@@ -10,6 +10,15 @@
 
   let currentStreamingTimer = null;
 
+  // Set right before auto-sending a voice-transcribed message, consumed
+  // (and reset) the moment that turn's response finishes rendering in
+  // finishStreaming() below. This is how AGNI knows to speak its reply only
+  // for a turn that started as spoken input, and stay silent for anything
+  // typed — regenerate/suggestion-chip turns never set this flag, so they
+  // fall through to the "typed" behavior even though they share the same
+  // streamAIResponse()/finishStreaming() code path.
+  let pendingVoiceAutoSpeak = false;
+
   document.addEventListener('DOMContentLoaded', () => {
     initializeApp();
   });
@@ -42,7 +51,6 @@
     ui.renderNavigation();
     ui.renderQuickActions();
     ui.renderRightPanels();
-    ui.renderModels();
     ui.renderDocuments(true);
     ui.renderContextChips(true);
     ui.renderMessages(true);
@@ -60,6 +68,55 @@
     const headerThemeBtn = document.getElementById('header-theme-toggle');
     if (headerThemeBtn) headerThemeBtn.addEventListener('click', () => state.toggleTheme());
 
+    // Network Monitor Button (Top-Right Header) -> real air-gap audit check
+    const networkMonitorBtn = document.getElementById('network-monitor-btn');
+    const networkStatusModal = document.getElementById('network-status-modal');
+    const networkStatusContent = document.getElementById('network-status-content');
+    const closeNetworkModalBtn = document.getElementById('close-network-modal');
+    if (networkMonitorBtn && networkStatusModal && networkStatusContent) {
+      networkMonitorBtn.addEventListener('click', async () => {
+        networkStatusModal.classList.remove('hidden');
+        networkStatusContent.innerHTML = `
+          <div class="p-2 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-[11px] text-[#3F641C] dark:text-[#A8D66D] font-mono">
+            Checking live network audit status…
+          </div>
+        `;
+        try {
+          const audit = await api.getNetworkStatus();
+          const rows = [
+            ['Egress status', audit.egress_status],
+            ['External connections detected', audit.external_connections_detected],
+            ['Air-gap enforced', audit.enforce_air_gap ? 'Yes' : 'No'],
+            ['Allowed hosts', (audit.allowed_hosts || []).join(', ')],
+            ['Certification', audit.audit_certification],
+            ['Last audit', audit.last_audit_timestamp],
+          ];
+          networkStatusContent.innerHTML = rows.map(([label, value]) => `
+            <div class="flex items-start justify-between gap-3 py-1 border-b border-[#EAEFE2] dark:border-[#1E293B] last:border-0">
+              <span class="text-[11px] font-semibold text-[#5C6654] dark:text-[#AEB5A6] shrink-0">${label}</span>
+              <span class="text-[11px] font-mono text-[#20251D] dark:text-[#E8EBDD] text-right break-all">${value}</span>
+            </div>
+          `).join('');
+        } catch (err) {
+          console.error('[Network Status] fetch failed:', err);
+          networkStatusContent.innerHTML = `
+            <div class="p-2 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 rounded text-[11px] text-amber-800 dark:text-amber-300">
+              Could not reach the backend audit endpoint. Is the FastAPI server running?
+            </div>
+          `;
+        }
+      });
+    }
+    if (closeNetworkModalBtn && networkStatusModal) {
+      closeNetworkModalBtn.addEventListener('click', () => networkStatusModal.classList.add('hidden'));
+    }
+
+    // Header Profile Button -> opens the real System Settings page
+    const headerProfileBtn = document.getElementById('header-profile-btn');
+    if (headerProfileBtn) {
+      headerProfileBtn.addEventListener('click', () => state.setActiveNav('settings'));
+    }
+
     // State Subscriptions
     state.subscribe((event, data) => {
       if (event === 'themeChange') ui.applyTheme(data);
@@ -67,7 +124,6 @@
       if (event === 'drawerToggle') applyDrawerState(data);
       if (event === 'navChange') ui.switchView(data);
       if (event === 'modelChange') {
-        ui.renderModels();
         ui.renderRightPanels();
       }
       if (event === 'documentToggle' || event === 'documentAdd' || event === 'documentDelete' || event === 'searchChange') {
@@ -138,16 +194,28 @@
         ui.setVoiceAssistantState('recording');
       });
 
+      window.voiceAssistant.onProcessing(() => {
+        ui.setVoiceAssistantState('processing');
+      });
+
       window.voiceAssistant.onRecordingStop(() => {
         ui.setVoiceAssistantState('idle');
       });
 
-      window.voiceAssistant.onTranscript(({ text }) => {
+      window.voiceAssistant.onTranscript(({ text, isFinal, autoSend }) => {
         if (userInput) {
           userInput.value = text;
           userInput.style.height = 'auto';
           userInput.style.height = Math.min(userInput.scrollHeight, 180) + 'px';
           updateSendButtonState();
+        }
+        // isFinal+autoSend fires exactly once per recording, right after the
+        // mic auto-stops on silence (or is clicked again to stop early) —
+        // every earlier call for the same recording is a live, in-progress
+        // update (isFinal:false) that only fills the box, same as typing.
+        if (isFinal && autoSend && text && text.trim() && !state.isStreaming) {
+          pendingVoiceAutoSpeak = true;
+          handleSendMessage();
         }
       });
 
@@ -241,16 +309,14 @@
         if (modalFileInput && modalFileInput.files.length > 0) {
           handleFilesUploaded(modalFileInput.files);
         } else {
-          // Demo fallback document
-          handleFilesUploaded([{ name: 'Unit_4_Hydrocarbon_Audit.pdf', size: 1850000 }]);
+          // No fake placeholder document — it used to silently create a
+          // document entry with no real file behind it, which the backend
+          // would fail to upload and then paper over with a client-side
+          // fallback object indistinguishable from a real one.
+          ui.showToast('Please select a file first.');
         }
       });
     }
-
-    // Settings Modal
-    const settingsModal = document.getElementById('settings-modal');
-    const closeSettingsBtn = document.getElementById('close-settings-modal');
-    if (closeSettingsBtn && settingsModal) closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
     // Interactive Prompt Cards
     const promptCards = document.querySelectorAll('.prompt-suggestion-card');
@@ -339,6 +405,7 @@
       }
       if (open) {
         drawer.classList.remove('translate-x-full');
+        loadDrawerRagMetrics();
       } else {
         drawer.classList.add('translate-x-full');
       }
@@ -347,6 +414,23 @@
           drawer.style.transition = '';
         });
       }
+    }
+  }
+
+  async function loadDrawerRagMetrics() {
+    const el = document.getElementById('drawer-rag-metrics');
+    if (!el) return;
+    try {
+      const stats = await api.getRagStatus();
+      if (stats.status === 'ready') {
+        el.textContent = `Local vector index active: ${stats.chunk_count.toLocaleString()} document chunks embedded on-premise with ${stats.embedding_model}.`;
+      } else if (stats.status === 'empty') {
+        el.textContent = 'Local vector index is empty — no documents indexed yet.';
+      } else {
+        el.textContent = 'Could not reach the local vector index status endpoint.';
+      }
+    } catch (err) {
+      el.textContent = 'Could not reach the local vector index status endpoint.';
     }
   }
 
@@ -396,6 +480,7 @@
     };
 
     state.messages.push(userMsg);
+    state.autoTitleCurrentSession(text); // no-op if this session was already titled
     state.saveMessages(); // Persist user message immediately
 
     // Add temporary AI thinking/loading message
@@ -527,6 +612,18 @@
 
     ui.renderMessages();
     ui.scrollToBottom();
+
+    // Speak the reply aloud only when this turn was itself spoken — never
+    // for a typed message, including regenerate/suggestion-chip turns that
+    // happen to share this same finishStreaming() path. renderMessages()
+    // just ran, so the per-message "Speak" button (and its id) now exists
+    // in the DOM for speakMessage() to grab.
+    if (pendingVoiceAutoSpeak) {
+      pendingVoiceAutoSpeak = false;
+      if (window.MRPLApp && window.MRPLApp.speakMessage) {
+        window.MRPLApp.speakMessage(aiMsgId);
+      }
+    }
   }
 
   function stopStreaming() {
@@ -614,6 +711,80 @@
     },
     feedback: (type) => {
       ui.showToast(type === 'up' ? 'Feedback recorded: Helpful' : 'Feedback recorded: Inaccurate');
+    },
+    speakMessage: async (msgId) => {
+      const msg = state.messages.find(m => m.id === msgId);
+      if (!msg || !msg.text) return;
+
+      // Toggle off if this message's audio is already playing
+      if (window._activeSpeechAudio && window._activeSpeechMsgId === msgId) {
+        window._activeSpeechAudio.pause();
+        window._activeSpeechAudio = null;
+        window._activeSpeechMsgId = null;
+        const btn = document.getElementById(`speak-btn-${msgId}`);
+        if (btn) btn.innerHTML = ui.icons.speaker + '<span>Speak</span>';
+        return;
+      }
+      // Stop any other message's playback first
+      if (window._activeSpeechAudio) {
+        window._activeSpeechAudio.pause();
+        const prevBtn = document.getElementById(`speak-btn-${window._activeSpeechMsgId}`);
+        if (prevBtn) prevBtn.innerHTML = ui.icons.speaker + '<span>Speak</span>';
+        window._activeSpeechAudio = null;
+        window._activeSpeechMsgId = null;
+      }
+
+      const btn = document.getElementById(`speak-btn-${msgId}`);
+      if (btn) btn.innerHTML = ui.icons.speakerLoading + '<span>Loading...</span>';
+
+      try {
+        // Strip markdown/code fences so Piper doesn't read out raw symbols
+        const plainText = msg.text.replace(/```[\s\S]*?```/g, '').replace(/[*_#`]/g, '').slice(0, 2000);
+        const audioUrl = await api.synthesizeSpeech(plainText);
+        const audio = new Audio(audioUrl);
+        window._activeSpeechAudio = audio;
+        window._activeSpeechMsgId = msgId;
+
+        if (btn) btn.innerHTML = ui.icons.stop + '<span>Stop</span>';
+
+        audio.onended = () => {
+          if (btn) btn.innerHTML = ui.icons.speaker + '<span>Speak</span>';
+          window._activeSpeechAudio = null;
+          window._activeSpeechMsgId = null;
+          URL.revokeObjectURL(audioUrl);
+        };
+        audio.play();
+      } catch (err) {
+        console.error('[Speak] synthesis failed:', err);
+        ui.showToast('Text-to-speech failed. Is the backend running?');
+        if (btn) btn.innerHTML = ui.icons.speaker + '<span>Speak</span>';
+      }
+    },
+    openGeneratedFile: (encodedPath) => {
+      let filePath;
+      try {
+        filePath = decodeURIComponent(escape(atob(encodedPath)));
+      } catch (e) {
+        ui.showToast('Could not read that file path.');
+        return;
+      }
+      // nodeIntegration is enabled for this window (see main.js), so the
+      // renderer can call Electron's shell module directly — no IPC bridge
+      // needed to open a locally-generated report from the chat itself.
+      try {
+        const { shell } = require('electron');
+        shell.openPath(filePath).then((errMsg) => {
+          if (errMsg) {
+            ui.showToast(`Could not open file: ${errMsg}`);
+          }
+        });
+      } catch (e) {
+        // Not running inside Electron (e.g. opened in a plain browser tab
+        // for testing) — fall back to giving the user the path to navigate
+        // to manually instead of failing silently.
+        navigator.clipboard?.writeText(filePath);
+        ui.showToast('Desktop app required to open files directly — path copied to clipboard instead.');
+      }
     }
   };
 
@@ -636,6 +807,7 @@
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     state.messages.push(userMsg);
+    state.autoTitleCurrentSession(text); // no-op if this session was already titled
     state.saveMessages();
 
     const activeModel = state.getSelectedModel();

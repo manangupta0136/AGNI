@@ -63,14 +63,16 @@ const CONFIG = {
     }
   ],
 
-  // Agent Tools Metadata
+  // Agent Tools Metadata — mirrors the tools actually registered on the
+  // orchestrator in BACKEND/brain.py, so this list means something real
+  // rather than describing capabilities that don't exist server-side.
   AGENT_TOOLS: [
-    { id: 'tool-file', name: 'File Read/Write', status: 'Active', desc: 'Secure local storage access' },
-    { id: 'tool-code', name: 'Code Execution', status: 'Active', desc: 'Air-gapped Python sandbox' },
-    { id: 'tool-sheet', name: 'Spreadsheet Parser', status: 'Active', desc: 'XLSX & CSV tabular processing' },
-    { id: 'tool-search', name: 'Document Search', status: 'Active', desc: 'ChromaDB vector retriever' },
-    { id: 'tool-ocr', name: 'OCR & Vision', status: 'Active', desc: 'Multi-modal document scanner' },
-    { id: 'tool-report', name: 'Report Generation', status: 'Active', desc: 'Automated docx generator' }
+    { id: 'tool-file', name: 'File Read/Write', status: 'Active', desc: 'Read/write local text files (read_file, write_file)' },
+    { id: 'tool-code', name: 'Code Execution', status: 'Active', desc: 'Air-gapped Python sandbox (execute_code_tool)' },
+    { id: 'tool-docgen', name: 'Document Generation', status: 'Active', desc: 'Generate PDF, Word & PowerPoint files (pdf_tool, docx_tool, pptx_tool)' },
+    { id: 'tool-pdfread', name: 'PDF Reader & OCR', status: 'Active', desc: 'Extract text from PDFs, scanned pages routed to vision OCR (read_pdf_tool)' },
+    { id: 'tool-search', name: 'Knowledge Base Search', status: 'Active', desc: 'Qdrant vector retrieval over indexed documents (rag_search)' },
+    { id: 'tool-vision', name: 'Vision Analysis', status: 'Active', desc: 'Analyze images, scans & diagrams via local vision model (analyze_image)' }
   ],
 
   // System & Network Status Metadata
@@ -104,7 +106,7 @@ const CONFIG = {
     {
       id: 'document-vision-analyst',
       name: 'Document Vision Analyst',
-      backendModel: 'qwen2-vl:7b',
+      backendModel: 'qwen2.5vl:3b',
       badge: 'Vision & Multimodal',
       description: 'Contract audit, multi-document synthesis & inspection diagram analysis.',
       code: 'VIS',

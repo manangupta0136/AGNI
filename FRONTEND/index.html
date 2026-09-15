@@ -307,7 +307,12 @@
       </button>
 
       <!-- User Profile Avatar & Unit Info -->
-      <div class="flex items-center space-x-2 pl-2 border-l border-[#D6DDC9] dark:border-[#34422B]">
+      <button
+        id="header-profile-btn"
+        type="button"
+        title="Open System Settings"
+        class="flex items-center space-x-2 pl-2 border-l border-[#D6DDC9] dark:border-[#34422B] cursor-pointer hover:bg-[#EEF5E5] dark:hover:bg-[#1F2B18] rounded-r-md transition-colors py-0.5 pr-1.5"
+      >
         <div class="w-7 h-7 rounded-full bg-[#3F641C] text-white flex items-center justify-center font-bold text-[10px] shrink-0 border border-[#2D4913]">
           RE
         </div>
@@ -315,7 +320,7 @@
           <p class="font-bold text-[#20251D] dark:text-[#E8EBDD]">Refinery Engineer</p>
           <p class="text-[9px] text-[#5C6654] dark:text-[#AEB5A6]">Unit-4, MRPL</p>
         </div>
-      </div>
+      </button>
     </div>
   </header>
 
@@ -708,7 +713,7 @@
     >
       <div class="p-3 border-b border-[#D6DDC9] dark:border-[#1E293B] flex items-center justify-between bg-[#F9FAF6] dark:bg-[#161B19]">
         <h3 class="text-xs font-bold uppercase text-[#3F641C] dark:text-[#A8D66D]">
-          ChromaDB Vector Index
+          Qdrant Vector Index
         </h3>
         <button 
           id="close-drawer-btn" 
@@ -728,9 +733,9 @@
         </div>
 
         <div class="p-3 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded-md text-xs">
-          <h5 class="font-bold text-[#3F641C] dark:text-[#A8D66D] mb-1">Local ChromaDB Metrics</h5>
-          <p class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6]">
-            Local vector database active: 3,420 document chunks embedded on-premise with sentence-transformers.
+          <h5 class="font-bold text-[#3F641C] dark:text-[#A8D66D] mb-1">Local Qdrant Metrics</h5>
+          <p id="drawer-rag-metrics" class="text-[11px] text-[#5C6654] dark:text-[#AEB5A6]">
+            Checking local vector index…
           </p>
         </div>
       </div>
@@ -764,31 +769,23 @@
     </div>
 
     <!-- ========================================== -->
-    <!-- 6. APPLICATION SETTINGS MODAL              -->
+    <!-- 6. AIR-GAP NETWORK STATUS MODAL             -->
     <!-- ========================================== -->
-    <div id="settings-modal" class="fixed inset-0 bg-[#0B0F19]/70 backdrop-blur-2xs flex items-center justify-center z-50 hidden">
+    <div id="network-status-modal" class="fixed inset-0 bg-[#0B0F19]/70 backdrop-blur-2xs flex items-center justify-center z-50 hidden">
       <div class="bg-white dark:bg-[#131926] border border-[#D6DDC9] dark:border-[#1E293B] rounded-lg p-5 w-full max-w-md shadow-xl space-y-4">
         <div class="flex items-center justify-between border-b border-[#EAEFE2] dark:border-[#1E293B] pb-2">
-          <h3 class="text-xs font-bold text-[#20251D] dark:text-[#E8EBDD] uppercase">FastAPI Backend Settings</h3>
-          <button id="close-settings-modal" type="button" class="font-bold text-xs text-[#5C6654] hover:text-[#20251D] dark:hover:text-[#E8EBDD] cursor-pointer">✕</button>
+          <h3 class="text-xs font-bold text-[#20251D] dark:text-[#E8EBDD] uppercase">Air-Gap Egress Certification</h3>
+          <button id="close-network-modal" type="button" class="font-bold text-xs text-[#5C6654] hover:text-[#20251D] dark:hover:text-[#E8EBDD] cursor-pointer">✕</button>
         </div>
-        
-        <div class="space-y-3 text-xs">
-          <div>
-            <label class="block text-[11px] font-semibold text-[#5C6654] dark:text-[#AEB5A6] mb-1">FastAPI Service URL</label>
-            <input type="text" value="http://127.0.0.1:8000/api/v1" class="w-full px-2.5 py-1.5 bg-[#F9FAF6] dark:bg-[#161B19] border border-[#D6DDC9] dark:border-[#1E293B] rounded text-xs font-mono text-[#20251D] dark:text-[#E8EBDD]" readonly />
-          </div>
 
-          <div>
-            <label class="block text-[11px] font-semibold text-[#5C6654] dark:text-[#AEB5A6] mb-1">Ollama Engine Status</label>
-            <div class="p-2 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-[11px] text-[#3F641C] dark:text-[#A8D66D] font-mono">
-              Ready for backend integration (llama3.1:8b, qwen2.5-coder:7b, qwen2-vl:7b)
-            </div>
+        <div id="network-status-content" class="space-y-3 text-xs">
+          <div class="p-2 bg-[#EEF5E5] dark:bg-[#1F2B18] border border-[#C3D9AA] dark:border-[#34422B] rounded text-[11px] text-[#3F641C] dark:text-[#A8D66D] font-mono">
+            Checking live network audit status…
           </div>
         </div>
 
         <div class="flex justify-end pt-2">
-          <button onclick="document.getElementById('settings-modal').classList.add('hidden')" type="button" class="px-4 py-1 text-xs bg-[#3F641C] hover:bg-[#304D16] text-white font-semibold rounded cursor-pointer">Close</button>
+          <button onclick="document.getElementById('network-status-modal').classList.add('hidden')" type="button" class="px-4 py-1 text-xs bg-[#3F641C] hover:bg-[#304D16] text-white font-semibold rounded cursor-pointer">Close</button>
         </div>
       </div>
     </div>

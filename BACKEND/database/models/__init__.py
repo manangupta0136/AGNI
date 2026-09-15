@@ -10,6 +10,17 @@ from database.models.memory import LongTermMemory
 from database.models.report import AuditReport
 from database.models.audit import SecurityAuditLog, CodeExecutionRun
 from database.models.vision import VisionAnalysis
+from database.models.agent import (
+    AgentTask,
+    AgentTaskStep,
+    ToolInvocation,
+    TaskAssumption,
+    Deliverable,
+    ModelRegistry,
+    RoutingDecision,
+    KnowledgeSource,
+    NetworkEvent,
+)
 
 __all__ = [
     "User",
@@ -24,4 +35,14 @@ __all__ = [
     "SecurityAuditLog",
     "CodeExecutionRun",
     "VisionAnalysis",
+    "AgentTask",
+    "AgentTaskStep",
+    "ToolInvocation",
+    "TaskAssumption",
+    "Deliverable",
+    "ModelRegistry",
+    "RoutingDecision",
+    "KnowledgeSource",
+    "NetworkEvent",
 ]
+

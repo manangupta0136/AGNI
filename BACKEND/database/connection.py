@@ -24,10 +24,11 @@ import database.models  # Ensure all models are registered with Base.metadata
 logger = logging.getLogger("AGNI.Database")
 
 # Detect default PostgreSQL URL or environment overrides
+_local_user = os.getenv("USER", "postgres")
 DEFAULT_POSTGRES_URL = (
     os.getenv("AGNI_DATABASE_URL")
     or os.getenv("DATABASE_URL")
-    or "postgresql+asyncpg://nayanprakash@localhost:5432/agni_db"
+    or f"postgresql+asyncpg://{_local_user}@localhost:5432/agni_db"
 )
 
 # SQLite fallback path for local offline dev

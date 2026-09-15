@@ -52,7 +52,7 @@ def resolve_model(role: Literal["vision", "code", "orchestrator"]) -> str:
         
         # Check known fallback candidates
         candidate_map = {
-            "code": ["qwen2.5-coder:7b", "deepseek-r1:1.5b", "codellama", "mistral:latest"],
+            "code": ["qwen2.5-coder:7b", "mistral:latest", "deepseek-r1:1.5b", "codellama"],
             "vision": ["qwen2.5vl:7b", "qwen2-vl:7b", "llava:latest", "mistral:latest"],
             "orchestrator": ["qwen2.5:7b-instruct", "mistral:latest", "llama3.1:8b", "deepseek-r1:1.5b"],
         }

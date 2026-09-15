@@ -13,6 +13,7 @@ Usage
 
 from __future__ import annotations
 
+import re
 from typing import Optional
 
 # ---------------------------------------------------------------------------
@@ -44,11 +45,39 @@ SYSTEM_PROMPT: str = (
     "8. Handle edge cases (division by zero, negative sqrt) gracefully.\n"
     "9. Use SI units unless the user specifies otherwise.\n"
     "10. Print intermediate calculation steps so the engineer can verify.\n"
+    "11. Pure Python numeric literals only: NEVER append physical unit letters directly to numbers "
+    "(e.g. write 'D = 0.2  # meters' instead of 'D = 0.2m', and 'P = 350e6  # Pa' instead of 'P = 350e6 Pa').\n"
 )
 
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
+
+def sanitize_python_code(code_str: str) -> str:
+    """Fix common LLM code generation quirks like unit suffixes on numbers."""
+    cleaned_lines = []
+    unit_pattern = re.compile(r'(\b\d+\.?\d*(?:e[+-]?\d+)?)\s*([a-zA-Z]+)(?=\s*([,\)\+\-\*\/]|\s*$))')
+
+    for line in code_str.split("\n"):
+        def _replace_unit(match):
+            num = match.group(1)
+            unit = match.group(2)
+            if unit.lower() in ("e", "j"):  # scientific notation or imaginary number
+                return match.group(0)
+            if unit.lower() in ("m", "mm", "cm", "in", "k", "c", "pa", "mpa", "gpa", "bar", "psi", "s", "min", "hr", "kg", "g", "w", "v"):
+                return f"{num}  # {unit}"
+            return match.group(0)
+
+        if "#" in line:
+            code_part, comment_part = line.split("#", 1)
+            fixed_code = unit_pattern.sub(_replace_unit, code_part)
+            cleaned_lines.append(f"{fixed_code}#{comment_part}")
+        else:
+            fixed_code = unit_pattern.sub(_replace_unit, line)
+            cleaned_lines.append(fixed_code)
+
+    return "\n".join(cleaned_lines)
+
 
 def build_code_prompt(user_request: str, context: Optional[str] = None) -> str:
     """Build the full prompt to send to the local Qwen model.
@@ -59,48 +88,57 @@ def build_code_prompt(user_request: str, context: Optional[str] = None) -> str:
     Parameters
     ----------
     user_request : str
-        The engineer's natural-language task description.
-    context : str, optional
-        Additional context such as file contents, sensor data summaries,
-        or prior conversation history to ground the model's response.
+        The engineering problem described by the user.
+    context : Optional[str]
+        Additional context (file contents, previous calculations, etc.).
 
     Returns
     -------
     str
-        A fully assembled prompt string ready for the Ollama API.
+        Complete prompt ready for ollama_client.
     """
-    parts: list[str] = [SYSTEM_PROMPT]
+    parts = [SYSTEM_PROMPT]
 
     if context:
-        parts.append(f"CONTEXT:\n{context}\n")
+        parts.append(f"CONTEXT / REFERENCE DATA:\n{context}\n")
 
-    parts.append(f"USER REQUEST:\n{user_request}")
+    parts.append(
+        f"ENGINEERING REQUEST:\n{user_request}\n\n"
+        "Generate the Python code to solve this problem:"
+    )
 
     return "\n".join(parts)
 
 
 def extract_code_block(raw_response: str) -> str:
-    """Extract Python code from the model's markdown-fenced response.
-
-    Handles three cases:
-    1. Code inside ```python ... ``` fences (preferred).
-    2. Code inside generic ``` ... ``` fences.
-    3. Raw response with no fences (treated as code directly).
-
-    Parameters
-    ----------
-    raw_response : str
-        The raw text response from the Ollama model.
-
-    Returns
-    -------
-    str
-        Cleaned Python source code ready for execution.
-    """
+    """Extract and sanitize Python code from the model's markdown-fenced response."""
+    extracted = ""
     if "```python" in raw_response:
-        return raw_response.split("```python")[1].split("```")[0].strip()
+        extracted = raw_response.split("```python")[1].split("```")[0].strip()
+    elif "```" in raw_response:
+        extracted = raw_response.split("```")[1].split("```")[0].strip()
+    else:
+        lines = raw_response.strip().split("\n")
+        code_lines = []
+        has_code_syntax = False
+        
+        for line in lines:
+            stripped = line.strip()
+            if (
+                stripped.startswith(("import ", "from ", "def ", "class ", "print(", "return ", "if ", "for ", "while ", "#"))
+                or "=" in stripped
+                or stripped.endswith(":")
+            ):
+                code_lines.append(line)
+                if not stripped.startswith("#"):
+                    has_code_syntax = True
+            elif not has_code_syntax:
+                continue
 
-    if "```" in raw_response:
-        return raw_response.split("```")[1].split("```")[0].strip()
+        if code_lines and has_code_syntax:
+            extracted = "\n".join(code_lines).strip()
+        else:
+            safe_text = raw_response.replace('"', '\\"').replace('\n', ' ')
+            extracted = f'# Generated output (conversational)\nprint("{safe_text[:300]}...")'
 
-    return raw_response.strip()
+    return sanitize_python_code(extracted)

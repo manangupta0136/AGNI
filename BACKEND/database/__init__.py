@@ -25,6 +25,15 @@ from database.models import (
     SecurityAuditLog,
     CodeExecutionRun,
     VisionAnalysis,
+    AgentTask,
+    AgentTaskStep,
+    ToolInvocation,
+    TaskAssumption,
+    Deliverable,
+    ModelRegistry,
+    RoutingDecision,
+    KnowledgeSource,
+    NetworkEvent,
 )
 from database.repositories import (
     UserRepository,
@@ -32,6 +41,7 @@ from database.repositories import (
     ChatRepository,
     DocumentRepository,
     AuditRepository,
+    AgentRepository,
 )
 
 __all__ = [
@@ -58,10 +68,21 @@ __all__ = [
     "SecurityAuditLog",
     "CodeExecutionRun",
     "VisionAnalysis",
+    "AgentTask",
+    "AgentTaskStep",
+    "ToolInvocation",
+    "TaskAssumption",
+    "Deliverable",
+    "ModelRegistry",
+    "RoutingDecision",
+    "KnowledgeSource",
+    "NetworkEvent",
     # Repositories
     "UserRepository",
     "MemoryRepository",
     "ChatRepository",
     "DocumentRepository",
     "AuditRepository",
+    "AgentRepository",
 ]
+

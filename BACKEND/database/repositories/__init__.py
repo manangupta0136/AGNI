@@ -8,6 +8,7 @@ from database.repositories.memory_repo import MemoryRepository
 from database.repositories.chat_repo import ChatRepository
 from database.repositories.document_repo import DocumentRepository
 from database.repositories.audit_repo import AuditRepository
+from database.repositories.agent_repo import AgentRepository
 
 __all__ = [
     "UserRepository",
@@ -15,4 +16,5 @@ __all__ = [
     "ChatRepository",
     "DocumentRepository",
     "AuditRepository",
+    "AgentRepository",
 ]

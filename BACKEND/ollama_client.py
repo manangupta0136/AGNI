@@ -30,9 +30,9 @@ logger = logging.getLogger("agni.ollama_client")
 KEEP_ALIVE_WINDOW = "5m"
 
 MODEL_REGISTRY = {
-    "orchestrator": os.getenv("AGNI_ORCHESTRATOR_MODEL", "qwen2.5:7b-instruct"),
-    "vision": os.getenv("AGNI_VISION_MODEL", "qwen2.5vl:7b"),
-    "code": os.getenv("AGNI_CODE_MODEL", "qwen2.5-coder:7b"),
+    "orchestrator": os.getenv("AGNI_ORCHESTRATOR_MODEL", "llama3.2:3b"),
+    "vision": os.getenv("AGNI_VISION_MODEL", "qwen2.5vl:3b"),
+    "code": os.getenv("AGNI_CODE_MODEL", "qwen2.5-coder:3b"),
 }
 
 # Tracks which specialist (vision/code) is currently believed to be
@@ -43,7 +43,7 @@ _current_specialist: str | None = None
 
 def resolve_model(role: Literal["vision", "code", "orchestrator"]) -> str:
     """Resolve configured model to an actually installed Ollama model."""
-    preferred = MODEL_REGISTRY.get(role, "mistral:latest")
+    preferred = MODEL_REGISTRY.get(role, "llama3.2:3b")
     try:
         models_resp = ollama.list()
         installed = [m.model for m in models_resp.models]
@@ -52,9 +52,9 @@ def resolve_model(role: Literal["vision", "code", "orchestrator"]) -> str:
         
         # Check known fallback candidates
         candidate_map = {
-            "code": ["qwen2.5-coder:7b", "mistral:latest", "deepseek-r1:1.5b", "codellama"],
-            "vision": ["qwen2.5vl:7b", "qwen2-vl:7b", "llava:latest", "mistral:latest"],
-            "orchestrator": ["qwen2.5:7b-instruct", "mistral:latest", "llama3.1:8b", "deepseek-r1:1.5b"],
+            "code": ["qwen2.5-coder:3b", "qwen2.5-coder:7b", "llama3.2:3b", "codellama"],
+            "vision": ["qwen2.5vl:3b", "qwen2.5vl:7b", "qwen2-vl:7b", "llava:latest"],
+            "orchestrator": ["llama3.2:3b", "qwen2.5:7b-instruct", "llama3.1:8b"],
         }
         for cand in candidate_map.get(role, []):
             for inst in installed:

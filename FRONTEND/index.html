@@ -15,7 +15,203 @@
     .thinking-text-fade {
       animation: fadeBlink 1.5s ease-in-out infinite;
     }
+
+    /* ── AGNI Task Progress Panel ─────────────────────────────────────── */
+
+    .agni-tp-panel {
+      background: #ffffff;
+      border: 1px solid #D6DDC9;
+      border-radius: 8px;
+      padding: 14px 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+      font-family: inherit;
+    }
+    .dark .agni-tp-panel {
+      background: #1C201E;
+      border-color: #2D3827;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.25);
+    }
+
+    /* Header */
+    .agni-tp-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 10px;
+    }
+    .agni-tp-header-left {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .agni-tp-brand {
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: #3F641C;
+    }
+    .dark .agni-tp-brand { color: #A8D66D; }
+    .agni-tp-sep {
+      color: #D6DDC9;
+      font-size: 11px;
+    }
+    .dark .agni-tp-sep { color: #34422B; }
+    .agni-tp-model {
+      font-size: 11px;
+      font-weight: 600;
+      color: #20251D;
+    }
+    .dark .agni-tp-model { color: #E8EBDD; }
+    .agni-tp-badge {
+      font-size: 10px;
+      font-family: ui-monospace, 'Cascadia Code', monospace;
+      font-weight: 600;
+      background: #EEF5E5;
+      color: #3F641C;
+      border: 1px solid #C3D9AA;
+      border-radius: 4px;
+      padding: 1px 7px;
+    }
+    .dark .agni-tp-badge {
+      background: #1F2B18;
+      color: #A8D66D;
+      border-color: #34422B;
+    }
+
+    /* Status dot (top-right corner of header) */
+    .agni-tp-status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      transition: background 0.3s;
+    }
+    .agni-tp-status-dot--active {
+      background: #e07b1a;
+      animation: agniTpDotPulse 1.4s ease-in-out infinite;
+    }
+    .agni-tp-status-dot--done  { background: #4ade80; }
+    .agni-tp-status-dot--error { background: #dc2626; }
+    @keyframes agniTpDotPulse {
+      0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(224,123,26,0.45); }
+      50%       { opacity: 0.7; box-shadow: 0 0 0 4px rgba(224,123,26,0); }
+    }
+
+    /* Divider */
+    .agni-tp-divider {
+      height: 1px;
+      background: #EAEFE2;
+      margin: 8px 0;
+    }
+    .dark .agni-tp-divider { background: #2D3827; }
+
+    /* Stage list */
+    .agni-tp-stages {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .agni-tp-stage {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 3px 2px;
+      border-radius: 4px;
+      transition: background 0.2s;
+    }
+
+    /* Icon */
+    .agni-tp-icon {
+      font-size: 11px;
+      font-weight: 700;
+      width: 16px;
+      text-align: center;
+      flex-shrink: 0;
+      display: inline-block;
+      /* Anime.js needs transform to be on the element */
+      will-change: transform, opacity;
+    }
+
+    /* Label */
+    .agni-tp-label {
+      font-size: 11.5px;
+      line-height: 1.4;
+    }
+
+    /* ── State: PENDING ── */
+    .agni-tp-stage--pending .agni-tp-icon--pending { color: #8A9581; }
+    .dark .agni-tp-stage--pending .agni-tp-icon--pending { color: #5C6654; }
+    .agni-tp-stage--pending .agni-tp-label {
+      color: #8A9581;
+    }
+    .dark .agni-tp-stage--pending .agni-tp-label { color: #5C6654; }
+
+    /* ── State: ACTIVE ── */
+    .agni-tp-stage--active {
+      background: rgba(224,123,26,0.06);
+    }
+    .dark .agni-tp-stage--active {
+      background: rgba(224,123,26,0.08);
+    }
+    .agni-tp-stage--active .agni-tp-icon--active { color: #d97706; }
+    .dark .agni-tp-stage--active .agni-tp-icon--active { color: #f59e0b; }
+    .agni-tp-stage--active .agni-tp-label {
+      color: #92400e;
+      font-weight: 600;
+    }
+    .dark .agni-tp-stage--active .agni-tp-label {
+      color: #fbbf24;
+      font-weight: 600;
+    }
+
+    /* ── State: DONE ── */
+    .agni-tp-stage--done .agni-tp-icon--done { color: #16a34a; }
+    .dark .agni-tp-stage--done .agni-tp-icon--done { color: #4ade80; }
+    .agni-tp-stage--done .agni-tp-label {
+      color: #166534;
+    }
+    .dark .agni-tp-stage--done .agni-tp-label { color: #86efac; }
+
+    /* ── State: ERROR ── */
+    .agni-tp-stage--error .agni-tp-icon--error { color: #dc2626; }
+    .dark .agni-tp-stage--error .agni-tp-icon--error { color: #f87171; }
+    .agni-tp-stage--error .agni-tp-label {
+      color: #dc2626;
+      font-weight: 600;
+    }
+    .dark .agni-tp-stage--error .agni-tp-label { color: #f87171; }
+
+    /* Footer */
+    .agni-tp-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 0;
+    }
+    .agni-tp-footer-text {
+      font-size: 10px;
+      font-family: ui-monospace, 'Cascadia Code', monospace;
+      color: #5C6654;
+      font-weight: 500;
+    }
+    .dark .agni-tp-footer-text { color: #AEB5A6; }
+    .agni-tp-footer-dots {
+      display: flex;
+      gap: 3px;
+      align-items: center;
+    }
+    .agni-tp-dot {
+      width: 4px;
+      height: 4px;
+      border-radius: 50%;
+      background: #d97706;
+      opacity: 0.15;
+      will-change: opacity;
+    }
+    .dark .agni-tp-dot { background: #f59e0b; }
   </style>
+
 </head>
 <body class="h-full bg-[#F4F5F0] dark:bg-[#0B0F19] text-[#20251D] dark:text-[#E8EBDD] flex flex-col overflow-hidden antialiased select-none">
 
@@ -600,6 +796,7 @@
   <script src="./js/state.js"></script>
   <script src="./js/api.js"></script>
   <script src="./js/ui.js"></script>
+  <script src="./js/taskProgress.js"></script>
   <script src="./js/voiceAssistant.js"></script>
   <script src="./js/app.js"></script>
 

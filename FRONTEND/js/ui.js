@@ -317,6 +317,18 @@ const ui = {
           </div>
         `;
       } else if (m.isThinking) {
+        const hasDocCtx = m.attachedDocs && m.attachedDocs.length > 0;
+        if (hasDocCtx) {
+          // Document request → taskProgress.js will populate this container
+          return `
+            <div class="mb-5" id="thinking-container-${m.id}">
+              <div id="task-progress-host-${m.id}">
+                <!-- task-progress block injected by taskProgress.js -->
+              </div>
+            </div>
+          `;
+        }
+        // Text-only request → simple classic thinking card
         return `
           <div class="mb-5" id="thinking-container-${m.id}">
             <div class="thinking-card-pulse bg-white dark:bg-[#1C201E] border border-[#D6DDC9] dark:border-[#2D3827] rounded-lg p-4 shadow-xs">
@@ -333,7 +345,7 @@ const ui = {
               </div>
               <div class="flex items-center space-x-2 py-1">
                 <span class="w-2 h-2 rounded-full bg-[#3F641C] dark:bg-[#A8D66D] animate-ping shrink-0"></span>
-                <span class="thinking-text-fade text-xs font-semibold text-[#3F641C] dark:text-[#A8D66D]">${this.escapeHtml(m.text || 'AGNI Thinking...')}</span>
+                <span class="thinking-text-fade text-xs font-semibold text-[#3F641C] dark:text-[#A8D66D]">AGNI Thinking...</span>
               </div>
             </div>
           </div>

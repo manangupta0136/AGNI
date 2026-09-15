@@ -352,6 +352,7 @@
 
   function startNewChat() {
     if (state.isStreaming) stopStreaming();
+    if (window.taskProgress) window.taskProgress.destroyAll();
     state.startNewSession('New Session');
     ui.renderMessages(true);
     ui.showToast('Started new chat session.');
@@ -359,6 +360,7 @@
 
   function clearChat() {
     if (state.isStreaming) stopStreaming();
+    if (window.taskProgress) window.taskProgress.destroyAll();
     state.clearCurrentMessages();
     ui.renderMessages(true);
     ui.showToast('Cleared conversation history.');
@@ -398,17 +400,30 @@
 
     // Add temporary AI thinking/loading message
     const activeModel = state.getSelectedModel();
-    const loadingText = activeDocs.length > 0 ? 'Analyzing document context...' : 'AGNI Thinking...';
+    const loadingMsgId = 'loading-msg-' + Date.now();
     const loadingMsg = {
-      id: 'loading-msg',
+      id: loadingMsgId,
       sender: 'ai',
-      text: loadingText,
+      text: '',
       modelName: activeModel ? activeModel.name : 'Engineering Intelligence',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isThinking: true
+      isThinking: true,
+      attachedDocs: activeDocs
     };
     state.messages.push(loadingMsg);
     ui.renderMessages();
+
+    // Initialise the task-progress panel ONLY for document-related requests
+    const tpContainerId = 'task-progress-host-' + loadingMsgId;
+    const isDocRequest = activeDocs.length > 0;
+    if (isDocRequest && window.taskProgress) {
+      window.taskProgress.create(
+        tpContainerId,
+        text,
+        activeDocs,
+        activeModel ? activeModel.name : 'Engineering Intelligence'
+      );
+    }
 
     // Immediately enter loading/streaming state to prevent duplicate submissions
     state.isStreaming = true;
@@ -420,7 +435,13 @@
       apiResult = await api.sendMessage(requestPayload);
     } catch (err) {
       console.error('[Chat] sendMessage failed:', err);
+      // Signal error on the progress panel before removing the thinking message
+      if (isDocRequest && window.taskProgress) {
+        window.taskProgress.signalError(tpContainerId, 'Unable to complete request');
+      }
+      await new Promise(resolve => setTimeout(resolve, isDocRequest ? 900 : 0));
       state.messages = state.messages.filter(m => !m.isThinking);
+      if (isDocRequest && window.taskProgress) window.taskProgress.destroy(tpContainerId);
       ui.showToast('Could not reach backend: ' + (err.message || 'Server error'));
       state.isStreaming = false;
       updateSendButtonState();
@@ -428,6 +449,17 @@
       return;
     }
 
+    // For document requests: wait for the completion animation before transitioning
+    if (isDocRequest) {
+      await new Promise(resolve => {
+        if (window.taskProgress) {
+          window.taskProgress.signalDone(tpContainerId, resolve);
+        } else {
+          resolve();
+        }
+      });
+      if (window.taskProgress) window.taskProgress.destroy(tpContainerId);
+    }
     state.messages = state.messages.filter(m => !m.isThinking);
     streamAIResponse(apiResult.response_text);
   }
@@ -607,34 +639,62 @@
     state.saveMessages();
 
     const activeModel = state.getSelectedModel();
-    const loadingText = activeDocs.length > 0 ? 'Analyzing document context...' : 'AGNI Thinking...';
+    const loadingMsgId2 = 'loading-msg-' + Date.now();
     const loadingMsg = {
-      id: 'loading-msg',
+      id: loadingMsgId2,
       sender: 'ai',
-      text: loadingText,
+      text: '',
       modelName: activeModel ? activeModel.name : 'Engineering Intelligence',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      isThinking: true
+      isThinking: true,
+      attachedDocs: activeDocs
     };
     state.messages.push(loadingMsg);
     ui.renderMessages();
+
+    const tpContainerId2 = 'task-progress-host-' + loadingMsgId2;
+    const isDocRequest2 = activeDocs.length > 0;
+    if (isDocRequest2 && window.taskProgress) {
+      window.taskProgress.create(
+        tpContainerId2,
+        text,
+        activeDocs,
+        activeModel ? activeModel.name : 'Engineering Intelligence'
+      );
+    }
 
     state.isStreaming = true;
     updateSendButtonState();
 
     api.sendMessage(state.buildChatRequest(text))
       .then(res => {
-        state.messages = state.messages.filter(m => !m.isThinking);
-        streamAIResponse(res.response_text);
+        return new Promise(resolve => {
+          if (isDocRequest2 && window.taskProgress) {
+            window.taskProgress.signalDone(tpContainerId2, resolve);
+          } else {
+            resolve();
+          }
+        }).then(() => {
+          if (isDocRequest2 && window.taskProgress) window.taskProgress.destroy(tpContainerId2);
+          state.messages = state.messages.filter(m => !m.isThinking);
+          streamAIResponse(res.response_text);
+        });
       })
       .catch(err => {
         console.error('[Chat] sendMessage failed:', err);
-        state.messages = state.messages.filter(m => !m.isThinking);
-        state.isStreaming = false;
-        updateSendButtonState();
-        ui.renderMessages();
-        ui.showToast('Could not reach backend. Is the server running?');
+        if (isDocRequest2 && window.taskProgress) {
+          window.taskProgress.signalError(tpContainerId2, 'Unable to complete request');
+        }
+        setTimeout(() => {
+          if (isDocRequest2 && window.taskProgress) window.taskProgress.destroy(tpContainerId2);
+          state.messages = state.messages.filter(m => !m.isThinking);
+          state.isStreaming = false;
+          updateSendButtonState();
+          ui.renderMessages();
+          ui.showToast('Could not reach backend. Is the server running?');
+        }, isDocRequest2 ? 900 : 0);
       });
+
   }
 
 })();

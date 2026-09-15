@@ -138,7 +138,7 @@ for directory in (DATA_DIR, UPLOADS_DIR, REPORTS_DIR):
 
 # ── Configuration Defaults ──────────────────────────────────────────────────
 OLLAMA_BASE_URL = os.getenv("AGNI_OLLAMA_URL", "http://localhost:11434").rstrip("/")
-DEFAULT_MODEL = os.getenv("AGNI_DEFAULT_MODEL", "mistral:latest")
+DEFAULT_MODEL = os.getenv("AGNI_DEFAULT_MODEL", "llama3.2:3b")
 APP_VERSION = "0.1.0"
 SERVER_START_TIME = time.time()
 
@@ -221,7 +221,7 @@ FRONTEND_MODELS = [
     {
         "id": "general-assistant",
         "name": "MRPL General Assistant",
-        "backendModel": "llama3.1:8b",
+        "backendModel": "llama3.2:3b",
         "badge": "Corporate & Policy",
         "description": "Corporate policies, HR rules, official PSU administrative queries.",
         "code": "GEN",
@@ -231,7 +231,7 @@ FRONTEND_MODELS = [
     {
         "id": "engineering-intelligence",
         "name": "Engineering Intelligence",
-        "backendModel": "qwen2.5-coder:7b",
+        "backendModel": "qwen2.5-coder:3b",
         "badge": "Refinery & Specs",
         "description": "Refinery equipment, piping standards, safety compliance & SOPs.",
         "code": "ENG",
@@ -285,9 +285,9 @@ async def resolve_local_model(requested_model: Optional[str], client: httpx.Asyn
     
     # Map common aliases
     alias_map = {
-        "qwen2.5-coder:7b": "deepseek-r1:1.5b",
-        "llama3.1:8b": "mistral:latest",
-        "qwen2-vl:7b": "mistral:latest",
+        "qwen2.5-coder:7b": "qwen2.5-coder:3b",
+        "llama3.1:8b": "llama3.2:3b",
+        "qwen2-vl:7b": "qwen2.5vl:3b",
     }
     mapped = alias_map.get(requested_model or "", None)
     if mapped and mapped in installed:
@@ -859,7 +859,7 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
                                 task_id=task_id,
                                 requested_task_type="coding",
                                 selected_model=code_model,
-                                candidate_models=["qwen2.5-coder:7b", "mistral:latest", "deepseek-r1:1.5b"],
+                                candidate_models=["qwen2.5-coder:3b", "llama3.2:3b", "qwen2.5vl:3b"],
                                 reason="Engineering calculation / Python sandbox execution requested",
                             )
                             step3 = await AgentRepository.add_task_step(

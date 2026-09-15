@@ -8,9 +8,10 @@ from langchain_core.tools import tool
 
 try:
     from rag.retrieval import retrieve
-except Exception as e:
+except Exception as _import_err:
+    _rag_err_msg = str(_import_err)
     def retrieve(query: str, top_k: int = 4) -> str:
-        return f"[Knowledge base retrieval offline: {e}]"
+        return f"[Knowledge base retrieval offline: {_rag_err_msg}]"
 
 
 @tool

@@ -88,7 +88,7 @@ const CONFIG = {
     {
       id: 'general-assistant',
       name: 'MRPL General Assistant',
-      backendModel: 'llama3.1:8b',
+      backendModel: 'llama3.2:3b',
       badge: 'Corporate & Policy',
       description: 'Corporate policies, HR rules, official PSU administrative queries.',
       code: 'GEN',
@@ -97,7 +97,7 @@ const CONFIG = {
     {
       id: 'engineering-intelligence',
       name: 'Engineering Intelligence',
-      backendModel: 'qwen2.5-coder:7b',
+      backendModel: 'qwen2.5-coder:3b',
       badge: 'Refinery & Specs',
       description: 'Refinery equipment, piping standards, safety compliance & SOPs.',
       code: 'ENG',

@@ -10,7 +10,7 @@ from typing import Optional
 
 import httpx
 
-from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage, AnyMessage
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
@@ -45,7 +45,7 @@ OLLAMA_TAGS_URL = "http://localhost:11434/api/tags"
 
 # ---- Dynamic Orchestrator Model Resolution ----
 def get_best_orchestrator_model() -> str:
-    preferred = os.getenv("AGNI_ORCHESTRATOR_MODEL", "qwen2.5:7b-instruct")
+    preferred = os.getenv("AGNI_ORCHESTRATOR_MODEL", "llama3.2:3b")
     try:
         resp = httpx.get(OLLAMA_TAGS_URL, timeout=2.0)
         if resp.status_code == 200:
@@ -53,7 +53,7 @@ def get_best_orchestrator_model() -> str:
             if preferred in installed:
                 return preferred
             # If preferred not found, choose best match or first installed
-            for candidate in ["qwen2.5:7b-instruct", "mistral:latest", "llama3.1:8b", "deepseek-r1:1.5b"]:
+            for candidate in ["llama3.2:3b", "qwen2.5-coder:3b", "qwen2.5vl:3b"]:
                 if candidate in installed:
                     return candidate
             if installed:
@@ -63,7 +63,7 @@ def get_best_orchestrator_model() -> str:
     return preferred
 
 ORCHESTRATOR_MODEL = get_best_orchestrator_model()
-DEFAULT_VISION_MODEL = os.getenv("AGNI_VISION_MODEL", "qwen2.5vl:7b")
+DEFAULT_VISION_MODEL = os.getenv("AGNI_VISION_MODEL", "qwen2.5vl:3b")
 logger.info("Brain orchestrator default model: %s", ORCHESTRATOR_MODEL)
 
 

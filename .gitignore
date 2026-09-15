@@ -5,3 +5,4 @@ BACKEND/data/
 node_modules/
 FRONTEND/node_modules/
 BACKEND/tools/workspace/
+backend/output_pages/

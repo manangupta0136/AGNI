@@ -23,7 +23,19 @@ DEFAULT_SCAN_PROMPT = (
     "extract any visible text verbatim, list any tables/forms/diagrams "
     "present, and flag anything that looks like a defect, anomaly, or "
     "safety issue if this is an industrial/technical image. Be specific "
-    "and structured in your answer."
+    "and structured in your answer. The output is shown in a plain-text "
+    "chat with no math/LaTeX rendering: never use LaTeX notation (no "
+    "\\(...\\), \\[...\\], $...$, or commands like \\rightarrow) — write "
+    "any formulas, equations, or symbolic notation in plain readable text "
+    "or ASCII instead (e.g. \"E -> E'\" not \"\\( E \\rightarrow E' \\)\")."
+)
+
+# Appended to any caller-supplied query too, since the same plain-text
+# constraint applies regardless of what's actually being asked.
+PLAIN_TEXT_INSTRUCTION = (
+    " Respond in plain text only — no LaTeX/math notation (no \\(...\\), "
+    "\\[...\\], $...$, or backslash commands); write formulas or symbolic "
+    "notation in plain readable text or ASCII instead."
 )
 
 
@@ -49,11 +61,13 @@ class OllamaVisionBackend(VisionModelBackend):
             with open(img.path, "rb") as f:
                 image_b64_list.append(base64.b64encode(f.read()).decode("utf-8"))
 
+        prompt = query + PLAIN_TEXT_INSTRUCTION if PLAIN_TEXT_INSTRUCTION not in query else query
+
         response = requests.post(
             f"{self.base_url}/api/generate",
             json={
                 "model": self.model_name,
-                "prompt": query,
+                "prompt": prompt,
                 "images": image_b64_list,
                 "stream": False,
             },

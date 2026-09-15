@@ -10,7 +10,7 @@
   "license": "ISC",
   "type": "commonjs",
   "devDependencies": {
-    "electron": "^44.1.1"
+    "electron": "^44.3.0"
   },
   "dependencies": {
     "@tailwindcss/cli": "^4.3.3",

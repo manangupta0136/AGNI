@@ -1,6 +1,11 @@
 import pymupdf
 from docling.document_converter import DocumentConverter
 import os
+from pathlib import Path
+
+# Absolute by default so rendered page images are findable regardless of
+# the server process's current working directory (relative to BACKEND/).
+DEFAULT_OUTPUT_FOLDER = str(Path(__file__).resolve().parent.parent.parent / "data" / "ocr_pages")
 
 
 def detect_document_type(text):
@@ -25,9 +30,15 @@ def detect_document_type(text):
         return "unknown"
 
 
-def pdf_read(pdf_path, output_folder="output_pages"):
+def pdf_read(pdf_path, output_folder=None):
 
+    output_folder = output_folder or DEFAULT_OUTPUT_FOLDER
     os.makedirs(output_folder, exist_ok=True)
+
+    # Namespaced by the source PDF's own filename so rendered pages from
+    # different uploads never collide/overwrite each other (e.g. two PDFs
+    # both having a "page_1").
+    pdf_stem = Path(pdf_path).stem
 
     # Open PDF using PyMuPDF
     doc = pymupdf.open(pdf_path)
@@ -50,7 +61,7 @@ def pdf_read(pdf_path, output_folder="output_pages"):
 
         else:
 
-            image_path = f"{output_folder}/page_{i + 1}.png"
+            image_path = os.path.join(output_folder, f"{pdf_stem}_page_{i + 1}.png")
 
             pix = page.get_pixmap(dpi=200)
             pix.save(image_path)

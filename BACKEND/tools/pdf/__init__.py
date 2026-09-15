@@ -1,3 +1,4 @@
+import re
 from typing import List, Dict
 
 from langchain_core.tools import tool
@@ -6,6 +7,12 @@ from tools.pdf.pdf_generate import pdf_generate
 from tools.pdf.pdf_read import pdf_read
 from tools.pdf.docx_write import docx_write
 from tools.pdf.pptx_generate import pptx_generate
+
+# Docling emits this placeholder markdown for a page it couldn't extract
+# real text from (no OCR configured in the DocumentConverter) — a scanned
+# page's export_to_markdown() output is just repeated "<!-- image -->"
+# comments, which is non-empty text but not actually readable content.
+_IMAGE_PLACEHOLDER_RE = re.compile(r"<!--\s*image\s*-->", re.IGNORECASE)
 
 
 @tool
@@ -16,16 +23,28 @@ def read_pdf_tool(path: str) -> str:
     Use this — not the generic file reader — whenever you need to read the
     contents of a PDF that has already been attached/uploaded and given to
     you as a local path (e.g. in an [ATTACHED FILES] block). Returns the
-    document's extracted text.
+    document's extracted text, or — for a scanned/image-only PDF — the
+    local paths of its rendered pages so you can call analyze_image on them
+    instead.
     """
     try:
         result = pdf_read(path)
         text = result.get("structured_text", "").strip()
-        if not text:
-            return (
-                f"[No extractable text found in {path}. It may be a scanned/"
-                f"image-only PDF — delegate to the Vision specialist instead.]"
-            )
+        meaningful_text = _IMAGE_PLACEHOLDER_RE.sub("", text).strip()
+        scanned_pages = result.get("pages_needing_ocr") or []
+
+        if not meaningful_text:
+            if scanned_pages:
+                pages_note = "\n".join(
+                    f"- Page {p['page_num']}: {p['image_path']}" for p in scanned_pages
+                )
+                return (
+                    f"[This PDF has no extractable text — it is scanned/image-only. "
+                    f"Call analyze_image on the rendered page image(s) below (one call "
+                    f"per page you need) instead of treating this as text:]\n{pages_note}"
+                )
+            return f"[No extractable text found in {path}, and no page images could be rendered either.]"
+
         return text
     except Exception as e:
         return f"[Error reading PDF {path}: {e}]"

@@ -409,9 +409,11 @@ app.add_middleware(
 # ── Vision sub-router ─────────────────────────────────────────────────────
 # tools/Vision/vision_module/router.py is designed to be mounted directly
 # (see its own docstring): app.include_router(vision_router). It exposes
-# POST /tools/vision/upload and POST /tools/vision/invoke. brain.py's
-# rerouter calls the same underlying VisionTool singleton directly for the
-# in-graph delegation path, so both paths share state.
+# POST /tools/vision/upload and POST /tools/vision/invoke, used by the
+# frontend's direct image upload flow and this file's own fallback path
+# (below, only reached if brain_graph is unavailable). brain.py's
+# orchestrator itself analyzes images via its own analyze_image tool,
+# independent of this router.
 if vision_router is not None:
     app.include_router(vision_router)
 
@@ -691,21 +693,28 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
         f"{attachment_context}\n\n{payload.message}" if attachment_context else payload.message
     )
 
-    # 1. General Intelligence Orchestrator (LangGraph Brain) — decides itself
-    #    whether this turn needs code, vision, RAG, or a PDF, instead of us
-    #    guessing from the Ollama model name (which is the same
-    #    "qwen2.5-coder:7b" for every Engineering Intelligence chat, code or
-    #    not).
+    # 1. General Intelligence Orchestrator (LangGraph Brain) — runs entirely
+    #    on the model the user selected in the Model Orchestrator panel
+    #    (payload.model, e.g. "qwen2.5-coder:7b" for Engineering
+    #    Intelligence). It still decides for itself whether a given turn
+    #    needs a tool (RAG, file I/O, code execution, image analysis), but
+    #    no longer swaps to a different hidden specialist model to do so.
     if brain_graph is not None:
         try:
             result = await asyncio.to_thread(
                 brain_graph.invoke,
                 {"messages": [{"role": "user", "content": orchestrator_message}]},
-                {"configurable": {"thread_id": conversation_id}},
+                {
+                    "configurable": {
+                        "thread_id": conversation_id,
+                        "selected_model": payload.model,
+                        "attachments": attachments,
+                    }
+                },
             )
             response_text = result["messages"][-1].content
             latency = round((time.time() - start_time) * 1000, 2)
-            model_used_name = "AGNI Orchestrator (LangGraph)"
+            model_used_name = payload.model or "AGNI Orchestrator"
 
             await _persist_chat_turn(
                 conversation_id=conversation_id,
@@ -955,7 +964,11 @@ async def handle_chat_stream(payload: ChatMessagePayload, request: Request):
     """
     client: httpx.AsyncClient = get_http_client(request)
     requested_model = (payload.model or "").lower()
-    conversation_id = payload.conversation_id or "chat-stream"
+    # NOTE: must be a per-conversation id, not a shared literal — this is
+    # the LangGraph thread_id key that MemorySaver uses to keep each
+    # conversation's message history separate. A shared fallback here would
+    # make every conversation missing an id bleed into the same thread.
+    conversation_id = payload.conversation_id or f"chat-{uuid.uuid4().hex[:8]}"
 
     attachments = await _resolve_attachments(payload.document_ids)
     attachment_context = _build_attachment_context(attachments)
@@ -963,16 +976,22 @@ async def handle_chat_stream(payload: ChatMessagePayload, request: Request):
         f"{attachment_context}\n\n{payload.message}" if attachment_context else payload.message
     )
 
-    # 1. General Orchestrator Stream — let the orchestrator itself decide
-    #    whether code/vision/RAG/PDF is needed, instead of guessing from the
-    #    Ollama model name.
+    # 1. General Orchestrator Stream — runs on the model selected in the
+    #    Model Orchestrator panel (payload.model), deciding for itself
+    #    whether a tool call (RAG/file/code/vision) is needed this turn.
     if brain_graph is not None:
         async def brain_event_generator():
             try:
                 result = await asyncio.to_thread(
                     brain_graph.invoke,
                     {"messages": [{"role": "user", "content": orchestrator_message}]},
-                    {"configurable": {"thread_id": conversation_id}},
+                    {
+                        "configurable": {
+                            "thread_id": conversation_id,
+                            "selected_model": payload.model,
+                            "attachments": attachments,
+                        }
+                    },
                 )
                 yield result["messages"][-1].content
             except Exception as exc:
@@ -989,7 +1008,7 @@ async def handle_chat_stream(payload: ChatMessagePayload, request: Request):
         return StreamingResponse(
             brain_event_generator(),
             media_type="text/plain; charset=utf-8",
-            headers={"X-Model-Used": "AGNI Orchestrator (LangGraph)", "X-Conversation-ID": conversation_id},
+            headers={"X-Model-Used": payload.model or "AGNI Orchestrator", "X-Conversation-ID": conversation_id},
         )
 
     # 2. Fallback Specialist Re-routing in stream (only reached when the

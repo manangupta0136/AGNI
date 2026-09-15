@@ -422,18 +422,19 @@ const ui = {
   parseMarkdown(md) {
     if (!md) return '';
 
-    let html = this.escapeHtml(md);
+    const codeBlocks = [];
 
-    // Code blocks ```
-    html = html.replace(/```(\w+)?\n([\s\S]*?)```/g, function (match, lang, code) {
-      return `<div class="my-3 rounded-md border border-[#34422B] bg-[#151819] text-[#E8EBDD] overflow-hidden">
-        <div class="flex items-center justify-between px-3 py-1.5 bg-[#171B19] font-mono text-[11px] text-[#A8D66D] border-b border-[#34422B]">
-          <span>${lang || 'CODE'}</span>
-          <button type="button" onclick="navigator.clipboard.writeText(this.parentNode.nextElementSibling.innerText)" class="hover:text-white cursor-pointer">Copy</button>
-        </div>
-        <pre class="p-3 overflow-x-auto text-xs font-mono"><code>${code}</code></pre>
-      </div>`;
+    // Extract code blocks first to protect them from HTML escaping and paragraph injection
+    let text = md.replace(/```(\w+)?\s*\n([\s\S]*?)```/g, (match, lang, code) => {
+      const idx = codeBlocks.length;
+      codeBlocks.push({
+        lang: lang || 'CODE',
+        code: this.escapeHtml(code.trimEnd()),
+      });
+      return `___AGNI_CODE_BLOCK_${idx}___`;
     });
+
+    let html = this.escapeHtml(text);
 
     // Inline code `code`
     html = html.replace(/`([^`]+)`/g, '<code class="px-1.5 py-0.5 rounded bg-[#EEF5E5] dark:bg-[#1F2B18] font-mono text-[11px] text-[#3F641C] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B]">$1</code>');
@@ -446,7 +447,6 @@ const ui = {
     html = html.replace(/&gt; \[!IMPORTANT\]\n&gt; (.*$)/gim, '<div class="my-2 p-2.5 bg-[#EEF5E5] dark:bg-[#1F2B18] border-l-4 border-[#3F641C] dark:border-[#88B83E] rounded-r text-xs text-[#20251D] dark:text-[#E8EBDD] font-medium">⚠️ $1</div>');
 
     // Bold & Italics
-    html = html.replace(/\*\*([^*]+)\*\`/g, '<strong>$1</strong>');
     html = html.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
     html = html.replace(/\*([^*]+)\*/g, '<em>$1</em>');
 
@@ -476,7 +476,20 @@ const ui = {
     // Source links [Source: ...]
     html = html.replace(/\[Source: ([^\]]+)\]/g, '<span class="inline-block font-mono text-[10px] bg-[#EEF5E5] text-[#3F641C] dark:bg-[#1F2B18] dark:text-[#A8D66D] border border-[#C3D9AA] dark:border-[#34422B] px-2 py-0.5 rounded my-1 mr-1">📄 Source: $1</span>');
 
+    // Paragraphs
     html = html.replace(/\n\n/g, '</p><p class="mt-2">');
+
+    // Restore Code blocks with pristine styling
+    codeBlocks.forEach((cb, idx) => {
+      const codeMarkup = `</p><div class="my-3 rounded-md border border-[#34422B] bg-[#151819] text-[#E8EBDD] overflow-hidden">
+        <div class="flex items-center justify-between px-3 py-1.5 bg-[#171B19] font-mono text-[11px] text-[#A8D66D] border-b border-[#34422B]">
+          <span>${cb.lang}</span>
+          <button type="button" onclick="navigator.clipboard.writeText(this.parentNode.nextElementSibling.innerText)" class="hover:text-white cursor-pointer">Copy</button>
+        </div>
+        <pre class="p-3 overflow-x-auto text-xs font-mono"><code>${cb.code}</code></pre>
+      </div><p class="mt-2">`;
+      html = html.replace(`___AGNI_CODE_BLOCK_${idx}___`, codeMarkup);
+    });
 
     return `<p>${html}</p>`;
   },

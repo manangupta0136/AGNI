@@ -28,14 +28,15 @@ const api = {
 
   /**
    * Upload a confidential document file to FastAPI OCR/RAG pipeline
-   * Endpoint: POST /api/v1/documents/upload
+   * Endpoint: POST /api/v1/documents/upload?username=...
    */
-  async uploadDocument(file) {
+  async uploadDocument(file, username = 'rekha') {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      const url = `${CONFIG.API_BASE_URL}/documents/upload?username=${encodeURIComponent(username)}`;
 
-      const res = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.UPLOAD_DOC}`, {
+      const res = await fetch(url, {
         method: 'POST',
         body: formData
       });
@@ -64,11 +65,11 @@ const api = {
 
   /**
    * Fetch available documents list
-   * Endpoint: GET /api/v1/documents
+   * Endpoint: GET /api/v1/documents?username=...
    */
-  async getDocuments() {
+  async getDocuments(username = 'rekha') {
     try {
-      const res = await fetch(`${CONFIG.API_BASE_URL}${CONFIG.ENDPOINTS.GET_DOCS}`);
+      const res = await fetch(`${CONFIG.API_BASE_URL}/documents?username=${encodeURIComponent(username)}`);
       if (res.ok) {
         return await res.json();
       }
@@ -98,25 +99,79 @@ const api = {
 
   /**
    * Fetch backend models list
-   * Future endpoint: GET /models
+   * Endpoint: GET /api/v1/models
    */
   async getModels() {
-    console.log('[API Placeholder] GET /models');
+    try {
+      const res = await fetch(`${CONFIG.API_BASE_URL}/models`);
+      if (res.ok) {
+        return await res.json();
+      }
+    } catch (err) {
+      console.warn('Backend models fetch fallback:', err);
+    }
     return CONFIG.MODELS;
   },
 
   /**
    * Trigger Word Document (.docx) report generation
-   * Future endpoint: POST /documents/generate-word
+   * Endpoint: POST /api/v1/documents/generate-word
    */
   async generateWordDoc(payload) {
-    console.log('[API Placeholder] POST /documents/generate-word:', payload);
-    await new Promise(resolve => setTimeout(resolve, 600));
-    return {
-      status: 'success',
-      download_url: '/api/v1/downloads/MRPL_Report.docx'
-    };
+    const res = await fetch(`${CONFIG.API_BASE_URL}/documents/generate-word`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload || { title: 'MRPL Technical Audit' })
+    });
+
+    if (!res.ok) {
+      const detail = await res.text().catch(() => '');
+      throw new Error(`Word report generation failed (${res.status}): ${detail}`);
+    }
+
+    return res.json();
   },
+
+  /**
+   * Air-gap network audit status check
+   * Endpoint: GET /api/v1/system/network-status
+   */
+  async getNetworkStatus() {
+    const res = await fetch(`${CONFIG.API_BASE_URL}/system/network-status`);
+    if (!res.ok) {
+      throw new Error(`Network audit check failed (${res.status})`);
+    }
+    return res.json();
+  },
+
+  /**
+   * Fetch agent tasks and steps for conversation
+   * Endpoint: GET /api/v1/tasks/{conversation_id}
+   */
+  async getTasks(conversationId) {
+    try {
+      const res = await fetch(`${CONFIG.API_BASE_URL}/tasks/${encodeURIComponent(conversationId)}`);
+      if (res.ok) return await res.json();
+    } catch (err) {
+      console.warn('Tasks fetch fallback:', err);
+    }
+    return { tasks: [] };
+  },
+
+  /**
+   * Fetch model auto-selection routing decisions
+   * Endpoint: GET /api/v1/routing/decisions
+   */
+  async getRoutingDecisions() {
+    try {
+      const res = await fetch(`${CONFIG.API_BASE_URL}/routing/decisions`);
+      if (res.ok) return await res.json();
+    } catch (err) {
+      console.warn('Routing decisions fetch fallback:', err);
+    }
+    return [];
+  },
+
 
   /**
    * Transcribe recorded audio blob via backend STT model

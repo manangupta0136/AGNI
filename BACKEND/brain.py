@@ -12,6 +12,7 @@ except ImportError:
 import httpx
 
 from langchain_core.messages import AIMessage, HumanMessage, SystemMessage, ToolMessage, AnyMessage
+from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import tool
 from langchain_ollama import ChatOllama
 from langgraph.checkpoint.memory import MemorySaver
@@ -45,7 +46,7 @@ OLLAMA_TAGS_URL = "http://localhost:11434/api/tags"
 
 # ---- Dynamic Orchestrator Model Resolution ----
 def get_best_orchestrator_model() -> str:
-    preferred = os.getenv("AGNI_ORCHESTRATOR_MODEL", "qwen2.5:7b-instruct")
+    preferred = os.getenv("AGNI_ORCHESTRATOR_MODEL", "llama3.2:3b")
     try:
         resp = httpx.get(OLLAMA_TAGS_URL, timeout=2.0)
         if resp.status_code == 200:
@@ -53,7 +54,7 @@ def get_best_orchestrator_model() -> str:
             if preferred in installed:
                 return preferred
             # If preferred not found, choose best match or first installed
-            for candidate in ["qwen2.5:7b-instruct", "mistral:latest", "llama3.1:8b", "deepseek-r1:1.5b"]:
+            for candidate in ["llama3.2:3b", "qwen2.5-coder:3b", "qwen2.5vl:3b"]:
                 if candidate in installed:
                     return candidate
             if installed:
@@ -63,7 +64,7 @@ def get_best_orchestrator_model() -> str:
     return preferred
 
 ORCHESTRATOR_MODEL = get_best_orchestrator_model()
-DEFAULT_VISION_MODEL = os.getenv("AGNI_VISION_MODEL", "qwen2.5vl:7b")
+DEFAULT_VISION_MODEL = os.getenv("AGNI_VISION_MODEL", "qwen2.5vl:3b")
 logger.info("Brain orchestrator default model: %s", ORCHESTRATOR_MODEL)
 
 
@@ -400,7 +401,7 @@ def _get_llm_with_tools(model_name: str):
     return _llm_cache[model_name]
 
 
-def approval_intake_node(state: OrchestratorState, config: dict = None):
+def approval_intake_node(state: OrchestratorState, config: RunnableConfig = None):
     """Runs before the chatbot on every turn. If a plan is pending approval,
     classify the user's latest message as approve / reject-or-modify so the
     gate below knows whether to let implementation through this turn.
@@ -465,7 +466,7 @@ def blocked_node(state: OrchestratorState):
     return {"messages": reply_messages, "awaiting_approval": False, "approved": False}
 
 
-def chatbot_node(state: OrchestratorState, config: dict = None):
+def chatbot_node(state: OrchestratorState, config: RunnableConfig = None):
     requested_model = ((config or {}).get("configurable") or {}).get("selected_model")
     model_name = resolve_installed_model(requested_model)
     _thread_local.selected_model = model_name

@@ -559,6 +559,53 @@ async def _persist_chat_turn(
         logger.debug("Chat persistence to database skipped: %s", exc)
 
 
+async def _resolve_attachments(document_ids: Optional[list[str]]) -> list[dict[str, str]]:
+    """Resolve chat document_ids (from a prior /documents/upload call) to
+    real filesystem paths + filenames, so the orchestrator can actually open
+    them instead of only knowing an opaque id."""
+    if not document_ids:
+        return []
+
+    resolved: list[dict[str, str]] = []
+    for doc_id in document_ids:
+        entry = next((d for d in DOCUMENT_STORE if d.get("id") == doc_id), None)
+        if entry and entry.get("local_path"):
+            resolved.append({
+                "id": doc_id,
+                "filename": entry.get("title", doc_id),
+                "path": entry["local_path"],
+            })
+            continue
+
+        if database_available:
+            try:
+                factory = get_session_factory()
+                async with factory() as session:
+                    db_doc = await DocumentRepository.get_document(session, doc_id)
+                    if db_doc and db_doc.file_path:
+                        resolved.append({
+                            "id": doc_id,
+                            "filename": db_doc.title or doc_id,
+                            "path": db_doc.file_path,
+                        })
+            except Exception as exc:
+                logger.debug("Could not resolve attachment %s from DB: %s", doc_id, exc)
+
+    return resolved
+
+
+def _build_attachment_context(attachments: list[dict[str, str]]) -> str:
+    """Render resolved attachments as an explicit context line the orchestrator
+    prompt tells it to recognize, so it never claims no file was attached."""
+    if not attachments:
+        return ""
+    lines = [
+        f"- {a['filename']} (local path: {a['path']})"
+        for a in attachments
+    ]
+    return "[ATTACHED FILES — already uploaded and available on disk]\n" + "\n".join(lines)
+
+
 @app.post("/api/v1/chat", response_model=ChatResponse, tags=["Chat"])
 async def handle_chat(payload: ChatMessagePayload, request: Request):
     """
@@ -635,8 +682,53 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
         except Exception as mem_err:
             logger.debug("Could not load user memory: %s", mem_err)
 
-    # 1. Specialist Re-routing: Coding Specialist
-    if any(m in requested_model for m in ("code", "coder", "engineering-intelligence")):
+    # Resolve any attached documents to real filesystem paths so the
+    # orchestrator's tools can actually open them, instead of only knowing
+    # an opaque document_id.
+    attachments = await _resolve_attachments(payload.document_ids)
+    attachment_context = _build_attachment_context(attachments)
+    orchestrator_message = (
+        f"{attachment_context}\n\n{payload.message}" if attachment_context else payload.message
+    )
+
+    # 1. General Intelligence Orchestrator (LangGraph Brain) — decides itself
+    #    whether this turn needs code, vision, RAG, or a PDF, instead of us
+    #    guessing from the Ollama model name (which is the same
+    #    "qwen2.5-coder:7b" for every Engineering Intelligence chat, code or
+    #    not).
+    if brain_graph is not None:
+        try:
+            result = await asyncio.to_thread(
+                brain_graph.invoke,
+                {"messages": [{"role": "user", "content": orchestrator_message}]},
+                {"configurable": {"thread_id": conversation_id}},
+            )
+            response_text = result["messages"][-1].content
+            latency = round((time.time() - start_time) * 1000, 2)
+            model_used_name = "AGNI Orchestrator (LangGraph)"
+
+            await _persist_chat_turn(
+                conversation_id=conversation_id,
+                user_prompt=payload.message,
+                assistant_text=response_text,
+                model_used=model_used_name,
+                latency_ms=latency,
+                username=clean_user,
+            )
+
+            return ChatResponse(
+                status="success",
+                success=True,
+                conversation_id=conversation_id,
+                model_used=model_used_name,
+                response_text=response_text,
+            )
+        except Exception as exc:
+            logger.warning("brain graph invocation failed, falling back to raw Ollama: %s", exc)
+
+    # 2. Fallback Specialist Re-routing: Coding Specialist (only reached when
+    #    the orchestrator above is unavailable or failed)
+    if any(m in requested_model for m in ("code", "coder")):
         try:
             from tools.code.code import execute_code
             from tools.code.code_prompt import build_code_prompt, extract_code_block
@@ -775,7 +867,7 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
         except Exception as exc:
             logger.warning("Direct coding specialist invocation failed, falling back: %s", exc)
 
-    # 2. Specialist Re-routing: Vision Specialist
+    # 3. Fallback Specialist Re-routing: Vision Specialist
     if any(m in requested_model for m in ("vision", "vl", "document-vision-analyst")):
         try:
             from tools.Vision.vision_module.router import tool as vision_tool
@@ -810,38 +902,7 @@ async def handle_chat(payload: ChatMessagePayload, request: Request):
         except Exception as exc:
             logger.warning("Direct vision specialist invocation failed, falling back: %s", exc)
 
-    # 3. General Intelligence Orchestrator (LangGraph Brain)
-    if brain_graph is not None:
-        try:
-            result = await asyncio.to_thread(
-                brain_graph.invoke,
-                {"messages": [{"role": "user", "content": payload.message}]},
-                {"configurable": {"thread_id": conversation_id}},
-            )
-            response_text = result["messages"][-1].content
-            latency = round((time.time() - start_time) * 1000, 2)
-            model_used_name = "AGNI Orchestrator (LangGraph)"
-
-            await _persist_chat_turn(
-                conversation_id=conversation_id,
-                user_prompt=payload.message,
-                assistant_text=response_text,
-                model_used=model_used_name,
-                latency_ms=latency,
-                username=clean_user,
-            )
-
-            return ChatResponse(
-                status="success",
-                success=True,
-                conversation_id=conversation_id,
-                model_used=model_used_name,
-                response_text=response_text,
-            )
-        except Exception as exc:
-            logger.warning("brain graph invocation failed, falling back to raw Ollama: %s", exc)
-
-    # 4. Fallback: Direct Local Model Generation
+    # 4. Final Fallback: Direct Local Model Generation
     target_model = await resolve_local_model(payload.model, client)
     active_docs = [d["title"] for d in DOCUMENT_STORE if d.get("active")]
     doc_context = f"Referenced Local Documents: {', '.join(active_docs)}" if active_docs else ""
@@ -896,8 +957,44 @@ async def handle_chat_stream(payload: ChatMessagePayload, request: Request):
     requested_model = (payload.model or "").lower()
     conversation_id = payload.conversation_id or "chat-stream"
 
-    # 1. Specialist Re-routing in stream
-    if any(m in requested_model for m in ("code", "coder", "engineering-intelligence")):
+    attachments = await _resolve_attachments(payload.document_ids)
+    attachment_context = _build_attachment_context(attachments)
+    orchestrator_message = (
+        f"{attachment_context}\n\n{payload.message}" if attachment_context else payload.message
+    )
+
+    # 1. General Orchestrator Stream — let the orchestrator itself decide
+    #    whether code/vision/RAG/PDF is needed, instead of guessing from the
+    #    Ollama model name.
+    if brain_graph is not None:
+        async def brain_event_generator():
+            try:
+                result = await asyncio.to_thread(
+                    brain_graph.invoke,
+                    {"messages": [{"role": "user", "content": orchestrator_message}]},
+                    {"configurable": {"thread_id": conversation_id}},
+                )
+                yield result["messages"][-1].content
+            except Exception as exc:
+                logger.warning("brain graph streaming failed: %s", exc)
+                target_model = await resolve_local_model(payload.model, client)
+                async for token in generate_ollama_stream(
+                    prompt=payload.message,
+                    model=target_model,
+                    client=client,
+                    system_context="",
+                ):
+                    yield token
+
+        return StreamingResponse(
+            brain_event_generator(),
+            media_type="text/plain; charset=utf-8",
+            headers={"X-Model-Used": "AGNI Orchestrator (LangGraph)", "X-Conversation-ID": conversation_id},
+        )
+
+    # 2. Fallback Specialist Re-routing in stream (only reached when the
+    #    orchestrator above is unavailable)
+    if any(m in requested_model for m in ("code", "coder")):
         from ollama_client import resolve_model
         code_model = resolve_model("code")
 
@@ -930,33 +1027,6 @@ async def handle_chat_stream(payload: ChatMessagePayload, request: Request):
             code_stream_generator(),
             media_type="text/plain; charset=utf-8",
             headers={"X-Model-Used": f"{code_model} (Coding Specialist)", "X-Conversation-ID": conversation_id},
-        )
-
-    # 2. General Orchestrator Stream
-    if brain_graph is not None:
-        async def brain_event_generator():
-            try:
-                result = await asyncio.to_thread(
-                    brain_graph.invoke,
-                    {"messages": [{"role": "user", "content": payload.message}]},
-                    {"configurable": {"thread_id": conversation_id}},
-                )
-                yield result["messages"][-1].content
-            except Exception as exc:
-                logger.warning("brain graph streaming failed: %s", exc)
-                target_model = await resolve_local_model(payload.model, client)
-                async for token in generate_ollama_stream(
-                    prompt=payload.message,
-                    model=target_model,
-                    client=client,
-                    system_context="",
-                ):
-                    yield token
-
-        return StreamingResponse(
-            brain_event_generator(),
-            media_type="text/plain; charset=utf-8",
-            headers={"X-Model-Used": "AGNI Orchestrator (LangGraph)", "X-Conversation-ID": conversation_id},
         )
 
     # 3. Fallback Model Stream

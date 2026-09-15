@@ -1,8 +1,8 @@
 /**
- * MRPL AI WORKBENCH - Application Controller & Event Wiring
+ * AGNI: Air-Gapped Neural Intelligence - Application Controller & Event Wiring
  * 
  * Orchestrates event handling, interactive prompt cards, sidebar toggles,
- * working file upload pipeline, and mock streaming response loop.
+ * document context pipeline, persistence hydration, and streaming response loop.
  */
 
 (function () {
@@ -14,7 +14,7 @@
     initializeApp();
   });
 
-  function initializeApp() {
+  async function initializeApp() {
     try {
       const { webFrame } = require('electron');
       webFrame.setZoomFactor(1.0);
@@ -22,11 +22,32 @@
     } catch (e) {
       // Ignore if not in Electron renderer
     }
+
+    // 1. Restore Theme, Sidebar & Drawer layout without animation flash on startup
     ui.applyTheme(state.theme);
+    applySidebarState(state.sidebarCollapsed, true);
+    applyDrawerState(state.contextDrawerOpen, true);
+
+    // 2. Fetch and merge backend documents with local selection state & custom uploads
+    try {
+      const backendDocs = await api.getDocuments();
+      if (Array.isArray(backendDocs) && backendDocs.length > 0) {
+        state.mergeBackendDocuments(backendDocs);
+      }
+    } catch (err) {
+      console.warn('[Init] Syncing documents with backend failed:', err);
+    }
+
+    // 3. Render restored state components
+    ui.renderNavigation();
+    ui.renderQuickActions();
+    ui.renderRightPanels();
     ui.renderModels();
-    ui.renderDocuments();
-    ui.renderContextChips();
-    ui.renderMessages();
+    ui.renderDocuments(true);
+    ui.renderContextChips(true);
+    ui.renderMessages(true);
+    ui.switchView(state.activeNav);
+
     setupEventListeners();
   }
 
@@ -35,10 +56,8 @@
     const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
     if (sidebarToggleBtn) sidebarToggleBtn.addEventListener('click', toggleSidebar);
 
-    // Theme Toggle Buttons
-    const themeToggleBtn = document.getElementById('theme-toggle-btn');
+    // Theme Toggle Button (Top-Right Header)
     const headerThemeBtn = document.getElementById('header-theme-toggle');
-    if (themeToggleBtn) themeToggleBtn.addEventListener('click', () => state.toggleTheme());
     if (headerThemeBtn) headerThemeBtn.addEventListener('click', () => state.toggleTheme());
 
     // State Subscriptions
@@ -46,17 +65,26 @@
       if (event === 'themeChange') ui.applyTheme(data);
       if (event === 'sidebarToggle') applySidebarState(data);
       if (event === 'drawerToggle') applyDrawerState(data);
-      if (event === 'modelChange') ui.renderModels();
-      if (event === 'documentToggle' || event === 'documentAdd' || event === 'searchChange') {
+      if (event === 'navChange') ui.switchView(data);
+      if (event === 'modelChange') {
+        ui.renderModels();
+        ui.renderRightPanels();
+      }
+      if (event === 'documentToggle' || event === 'documentAdd' || event === 'documentDelete' || event === 'searchChange') {
         ui.renderDocuments();
+      }
+      if (event === 'sessionChange' || event === 'messagesCleared') {
+        ui.renderMessages(true);
       }
     });
 
-    // New Chat Buttons
+    // New Chat Button (Sidebar)
     const newChatBtn = document.getElementById('new-chat-btn');
-    const headerNewChatBtn = document.getElementById('header-new-chat-btn');
     if (newChatBtn) newChatBtn.addEventListener('click', startNewChat);
-    if (headerNewChatBtn) headerNewChatBtn.addEventListener('click', startNewChat);
+
+    // Clear Messages Button (Main Header)
+    const clearChatBtn = document.getElementById('clear-chat-btn');
+    if (clearChatBtn) clearChatBtn.addEventListener('click', clearChat);
 
     // Composer Form & Input Handlers
     const chatForm = document.getElementById('chat-composer-form');
@@ -220,10 +248,8 @@
     }
 
     // Settings Modal
-    const settingsBtn = document.getElementById('settings-btn');
     const settingsModal = document.getElementById('settings-modal');
     const closeSettingsBtn = document.getElementById('close-settings-modal');
-    if (settingsBtn && settingsModal) settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
     if (closeSettingsBtn && settingsModal) closeSettingsBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
     // Interactive Prompt Cards
@@ -237,10 +263,6 @@
         }
       });
     });
-
-    // Clear Chat Action
-    const clearChatBtn = document.getElementById('clear-chat-btn');
-    if (clearChatBtn) clearChatBtn.addEventListener('click', startNewChat);
 
     // Ctrl + Mouse Wheel Zoom handling
     window.addEventListener('wheel', (e) => {
@@ -266,9 +288,14 @@
 
     for (let i = 0; i < fileList.length; i++) {
       const file = fileList[i];
-      const newDoc = await api.uploadDocument(file);
-      state.addDocument(newDoc);
-      ui.showToast(`Indexed Document: "${newDoc.title}" (${newDoc.size})`);
+      try {
+        const newDoc = await api.uploadDocument(file);
+        state.addDocument(newDoc);
+        ui.showToast(`Indexed Document: "${newDoc.title}" (${newDoc.size})`);
+      } catch (err) {
+        console.error('[Upload] Error uploading file:', file.name, err);
+        ui.showToast(`Failed to upload "${file.name}": ${err.message || 'Upload error'}`);
+      }
     }
 
     if (uploadModal) uploadModal.classList.add('hidden');
@@ -280,14 +307,23 @@
     state.toggleSidebar();
   }
 
-  function applySidebarState(collapsed) {
+  function applySidebarState(collapsed, initialHydrate = false) {
     const sidebar = document.getElementById('app-sidebar');
     const toggleBtnIcon = document.querySelector('#sidebar-toggle-btn svg');
     if (sidebar) {
+      if (initialHydrate) {
+        sidebar.style.transition = 'none';
+      }
       if (collapsed) {
         sidebar.classList.add('sidebar-closed');
       } else {
         sidebar.classList.remove('sidebar-closed');
+      }
+      if (initialHydrate) {
+        // Re-enable transition after initial render frame
+        requestAnimationFrame(() => {
+          sidebar.style.transition = '';
+        });
       }
     }
     if (toggleBtnIcon) {
@@ -295,22 +331,39 @@
     }
   }
 
-  function applyDrawerState(open) {
+  function applyDrawerState(open, initialHydrate = false) {
     const drawer = document.getElementById('right-context-drawer');
     if (drawer) {
+      if (initialHydrate) {
+        drawer.style.transition = 'none';
+      }
       if (open) {
         drawer.classList.remove('translate-x-full');
       } else {
         drawer.classList.add('translate-x-full');
+      }
+      if (initialHydrate) {
+        requestAnimationFrame(() => {
+          drawer.style.transition = '';
+        });
       }
     }
   }
 
   function startNewChat() {
     if (state.isStreaming) stopStreaming();
-    state.messages = [];
-    ui.renderMessages();
-    ui.showToast('Cleared conversation buffer.');
+    if (window.taskProgress) window.taskProgress.destroyAll();
+    state.startNewSession('New Session');
+    ui.renderMessages(true);
+    ui.showToast('Started new chat session.');
+  }
+
+  function clearChat() {
+    if (state.isStreaming) stopStreaming();
+    if (window.taskProgress) window.taskProgress.destroyAll();
+    state.clearCurrentMessages();
+    ui.renderMessages(true);
+    ui.showToast('Cleared conversation history.');
   }
 
   async function handleSendMessage() {
@@ -327,15 +380,54 @@
     userInput.value = '';
     userInput.style.height = 'auto';
 
+    const activeDocs = state.getActiveDocuments().map(d => ({
+      id: d.id,
+      title: d.title,
+      type: d.type,
+      size: d.size
+    }));
+
     const userMsg = {
       id: 'msg-' + Date.now(),
       sender: 'user',
       text: text,
+      attachedDocs: activeDocs,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
 
     state.messages.push(userMsg);
+    state.saveMessages(); // Persist user message immediately
+
+    // Add temporary AI thinking/loading message
+    const activeModel = state.getSelectedModel();
+    const loadingMsgId = 'loading-msg-' + Date.now();
+    const loadingMsg = {
+      id: loadingMsgId,
+      sender: 'ai',
+      text: '',
+      modelName: activeModel ? activeModel.name : 'Engineering Intelligence',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isThinking: true,
+      attachedDocs: activeDocs
+    };
+    state.messages.push(loadingMsg);
     ui.renderMessages();
+
+    // Initialise the task-progress panel ONLY for document-related requests
+    const tpContainerId = 'task-progress-host-' + loadingMsgId;
+    const isDocRequest = activeDocs.length > 0;
+    if (isDocRequest && window.taskProgress) {
+      window.taskProgress.create(
+        tpContainerId,
+        text,
+        activeDocs,
+        activeModel ? activeModel.name : 'Engineering Intelligence'
+      );
+    }
+
+    // Immediately enter loading/streaming state to prevent duplicate submissions
+    state.isStreaming = true;
+    updateSendButtonState();
 
     const requestPayload = state.buildChatRequest(text);
     let apiResult;
@@ -343,10 +435,32 @@
       apiResult = await api.sendMessage(requestPayload);
     } catch (err) {
       console.error('[Chat] sendMessage failed:', err);
-      ui.showToast('Could not reach backend. Is the server running?');
+      // Signal error on the progress panel before removing the thinking message
+      if (isDocRequest && window.taskProgress) {
+        window.taskProgress.signalError(tpContainerId, 'Unable to complete request');
+      }
+      await new Promise(resolve => setTimeout(resolve, isDocRequest ? 900 : 0));
+      state.messages = state.messages.filter(m => !m.isThinking);
+      if (isDocRequest && window.taskProgress) window.taskProgress.destroy(tpContainerId);
+      ui.showToast('Could not reach backend: ' + (err.message || 'Server error'));
+      state.isStreaming = false;
+      updateSendButtonState();
+      ui.renderMessages();
       return;
     }
 
+    // For document requests: wait for the completion animation before transitioning
+    if (isDocRequest) {
+      await new Promise(resolve => {
+        if (window.taskProgress) {
+          window.taskProgress.signalDone(tpContainerId, resolve);
+        } else {
+          resolve();
+        }
+      });
+      if (window.taskProgress) window.taskProgress.destroy(tpContainerId);
+    }
+    state.messages = state.messages.filter(m => !m.isThinking);
     streamAIResponse(apiResult.response_text);
   }
 
@@ -361,7 +475,7 @@
       id: aiMsgId,
       sender: 'ai',
       text: '',
-      modelName: activeModel ? activeModel.name : 'MRPL AI',
+      modelName: activeModel ? activeModel.name : 'Engineering Intelligence',
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isStreaming: true
     };
@@ -407,6 +521,10 @@
 
     state.isStreaming = false;
     updateSendButtonState();
+
+    // Persist final assistant response to state
+    state.saveMessages();
+
     ui.renderMessages();
     ui.scrollToBottom();
   }
@@ -422,6 +540,7 @@
     }
     state.isStreaming = false;
     updateSendButtonState();
+    state.saveMessages();
     ui.renderMessages();
     ui.showToast('Generation stopped.');
   }
@@ -444,12 +563,40 @@
   }
 
   // PUBLIC WINDOW API EXPORTS
-  window.MRPLApp = {
+  const AppExports = {
+    navigate: (navId) => state.setActiveNav(navId),
+    triggerQuickAction: (promptText) => {
+      if (!state.isStreaming) {
+        state.setActiveNav('chat');
+        const userInput = document.getElementById('user-input-textarea');
+        if (userInput) userInput.value = promptText;
+        handleSendMessage();
+      }
+    },
+    selectSession: (sessionId) => {
+      state.currentChatId = sessionId;
+      state.messages = state.messagesBySession[sessionId] || [];
+      state.saveState();
+      state.setActiveNav('chat');
+      ui.renderMessages(true);
+    },
     switchModel: (modelId) => state.setModel(modelId),
     toggleDocumentSelection: (docId) => state.toggleDocument(docId),
+    deleteDocument: async (docId) => {
+      const doc = state.documents.find(d => d.id === docId);
+      const title = doc ? doc.title : 'Document';
+      state.deleteDocument(docId);
+      try {
+        await api.deleteDocument(docId);
+        ui.showToast(`Deleted "${title}"`);
+      } catch (err) {
+        console.warn('Failed to delete document from backend:', err);
+      }
+    },
     toggleSidebar,
     toggleTheme: () => state.toggleTheme(),
     startNewChat,
+    clearChat,
     regenerate: () => {
       if (state.messages.length > 0) {
         const lastUserMsg = state.messages.filter(m => m.sender === 'user').pop();
@@ -470,21 +617,84 @@
     }
   };
 
+  window.AGNIApp = AppExports;
+  window.MRPLApp = AppExports;
+
   function handleSendMessageWithPrompt(text) {
+    const activeDocs = state.getActiveDocuments().map(d => ({
+      id: d.id,
+      title: d.title,
+      type: d.type,
+      size: d.size
+    }));
+
     const userMsg = {
       id: 'msg-' + Date.now(),
       sender: 'user',
       text: text,
+      attachedDocs: activeDocs,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     state.messages.push(userMsg);
+    state.saveMessages();
+
+    const activeModel = state.getSelectedModel();
+    const loadingMsgId2 = 'loading-msg-' + Date.now();
+    const loadingMsg = {
+      id: loadingMsgId2,
+      sender: 'ai',
+      text: '',
+      modelName: activeModel ? activeModel.name : 'Engineering Intelligence',
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+      isThinking: true,
+      attachedDocs: activeDocs
+    };
+    state.messages.push(loadingMsg);
     ui.renderMessages();
+
+    const tpContainerId2 = 'task-progress-host-' + loadingMsgId2;
+    const isDocRequest2 = activeDocs.length > 0;
+    if (isDocRequest2 && window.taskProgress) {
+      window.taskProgress.create(
+        tpContainerId2,
+        text,
+        activeDocs,
+        activeModel ? activeModel.name : 'Engineering Intelligence'
+      );
+    }
+
+    state.isStreaming = true;
+    updateSendButtonState();
+
     api.sendMessage(state.buildChatRequest(text))
-      .then(res => streamAIResponse(res.response_text))
+      .then(res => {
+        return new Promise(resolve => {
+          if (isDocRequest2 && window.taskProgress) {
+            window.taskProgress.signalDone(tpContainerId2, resolve);
+          } else {
+            resolve();
+          }
+        }).then(() => {
+          if (isDocRequest2 && window.taskProgress) window.taskProgress.destroy(tpContainerId2);
+          state.messages = state.messages.filter(m => !m.isThinking);
+          streamAIResponse(res.response_text);
+        });
+      })
       .catch(err => {
         console.error('[Chat] sendMessage failed:', err);
-        ui.showToast('Could not reach backend. Is the server running?');
+        if (isDocRequest2 && window.taskProgress) {
+          window.taskProgress.signalError(tpContainerId2, 'Unable to complete request');
+        }
+        setTimeout(() => {
+          if (isDocRequest2 && window.taskProgress) window.taskProgress.destroy(tpContainerId2);
+          state.messages = state.messages.filter(m => !m.isThinking);
+          state.isStreaming = false;
+          updateSendButtonState();
+          ui.renderMessages();
+          ui.showToast('Could not reach backend. Is the server running?');
+        }, isDocRequest2 ? 900 : 0);
       });
+
   }
 
 })();

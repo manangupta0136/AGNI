@@ -7,7 +7,7 @@ function createWindow() {
         height: 900,
         minWidth: 1100,
         minHeight: 700,
-        title: "MRPL AI WORKBENCH - Secure Enterprise AI Workspace",
+        title: "AGNI: Air-Gapped Neural Intelligence - Secure Enterprise AI Workspace",
         autoHideMenuBar: true,
         webPreferences: {
             nodeIntegration: true,

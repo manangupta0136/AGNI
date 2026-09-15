@@ -2,7 +2,12 @@ from pptx import Presentation
 from pptx.util import Inches, Pt
 
 
-def pptx_generate(slides_data, output_path="board_summary.pptx"):
+def pptx_generate(
+    slides_data,
+    output_path="board_summary.pptx",
+    title="AGNI INDUSTRIAL OPERATIONS",
+    subtitle="Equipment Inspection Report",
+):
     """
     Generate a clean PowerPoint presentation.
     """
@@ -15,8 +20,8 @@ def pptx_generate(slides_data, output_path="board_summary.pptx"):
 
     slide = prs.slides.add_slide(prs.slide_layouts[0])
 
-    slide.shapes.title.text = "AGNI INDUSTRIAL OPERATIONS"
-    slide.placeholders[1].text = "Equipment Inspection Report"
+    slide.shapes.title.text = title
+    slide.placeholders[1].text = subtitle
 
 
     # -----------------------------

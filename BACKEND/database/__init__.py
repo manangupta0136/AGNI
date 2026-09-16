@@ -20,6 +20,7 @@ from database.models import (
     Message,
     Document,
     DocumentChunk,
+    PdfDocument,
     LongTermMemory,
     AuditReport,
     SecurityAuditLog,
@@ -40,6 +41,7 @@ from database.repositories import (
     MemoryRepository,
     ChatRepository,
     DocumentRepository,
+    ReferenceDocumentRepository,
     AuditRepository,
     AgentRepository,
 )
@@ -63,6 +65,7 @@ __all__ = [
     "Message",
     "Document",
     "DocumentChunk",
+    "PdfDocument",
     "LongTermMemory",
     "AuditReport",
     "SecurityAuditLog",
@@ -82,6 +85,7 @@ __all__ = [
     "MemoryRepository",
     "ChatRepository",
     "DocumentRepository",
+    "ReferenceDocumentRepository",
     "AuditRepository",
     "AgentRepository",
 ]

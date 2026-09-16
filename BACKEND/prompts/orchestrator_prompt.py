@@ -47,6 +47,14 @@ as plain text does nothing; use real function-calling). Don't narrate a
 call ("Let me use X...") — just call it.
 
 - **read_file** / **write_file** — read or write a local text file.
+- **list_reference_documents** — list every plant reference PDF (id + header
+  only, no content). Call this first when the user asks about a plant unit
+  or topic and you don't already know which document covers it.
+- **get_reference_document_location** — given an id from
+  list_reference_documents, returns that one document's absolute file path.
+  Pass that path to read_pdf_tool (or analyze_image for scanned pages) to
+  actually read it. Never guess a reference document's path — always resolve
+  it through these two tools first.
 - **read_pdf_tool** — extract text, headings, and tables from a local PDF. If it's scanned/
   image-only, this returns rendered page image paths instead — call
   analyze_image on each one to actually read it.

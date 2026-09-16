@@ -6,6 +6,7 @@ Re-exports all declarative SQLAlchemy models and helpers.
 from database.models.user import User, hash_password, verify_password
 from database.models.conversation import Conversation, Message
 from database.models.document import Document, DocumentChunk
+from database.models.reference import PdfDocument
 from database.models.memory import LongTermMemory
 from database.models.report import AuditReport
 from database.models.audit import SecurityAuditLog, CodeExecutionRun
@@ -30,6 +31,7 @@ __all__ = [
     "Message",
     "Document",
     "DocumentChunk",
+    "PdfDocument",
     "LongTermMemory",
     "AuditReport",
     "SecurityAuditLog",

@@ -43,6 +43,18 @@ logger.setLevel(logging.INFO)
 
 OLLAMA_TAGS_URL = "http://localhost:11434/api/tags"
 
+# Self-referential — brain.py runs inside the same FastAPI process (main.py),
+# but the header->location lookup for plant reference PDFs is deliberately
+# routed through the HTTP API (see /api/v1/reference-documents in main.py)
+# rather than querying the database directly from a tool, so there's exactly
+# one place — the API layer — that owns reading that table.
+AGNI_API_BASE_URL = os.getenv("AGNI_API_BASE_URL", "http://127.0.0.1:8000/api/v1")
+
+def _looks_vision_capable(model_name: str) -> bool:
+    name = (model_name or "").lower()
+    return any(tag in name for tag in ("vl", "vision", "llava"))
+
+
 # ---- Dynamic Orchestrator Model Resolution ----
 def get_best_orchestrator_model() -> str:
     preferred = os.getenv("AGNI_ORCHESTRATOR_MODEL", "llama3.2:3b")
@@ -52,10 +64,21 @@ def get_best_orchestrator_model() -> str:
             installed = [m.get("name") for m in resp.json().get("models", [])]
             if preferred in installed:
                 return preferred
-            # If preferred not found, choose best match or first installed
-            for candidate in ["llama3.2:3b", "qwen2.5-coder:3b", "qwen2.5vl:3b"]:
+            # If preferred not found, choose the best installed substitute.
+            # Ollama's tool-calling API is only supported by text/instruct
+            # models, not vision ones (e.g. qwen2.5vl) — a vision model
+            # picked here becomes the default orchestrator for every
+            # conversation, so every tool call fails with a 400 "does not
+            # support tools" the moment the model tries to use read_file,
+            # rag_search, etc. Named candidates first, then any other
+            # installed non-vision model, and only fall back to a vision
+            # model (or anything at all) if truly nothing else is installed.
+            for candidate in ["llama3.2:3b", "qwen2.5-coder:3b", "qwen2.5:7b-instruct"]:
                 if candidate in installed:
                     return candidate
+            non_vision = [m for m in installed if not _looks_vision_capable(m)]
+            if non_vision:
+                return non_vision[0]
             if installed:
                 return installed[0]
     except Exception as e:
@@ -121,10 +144,6 @@ def resolve_installed_model(requested: Optional[str]) -> str:
     return requested
 
 
-def _looks_vision_capable(model_name: str) -> bool:
-    name = (model_name or "").lower()
-    return any(tag in name for tag in ("vl", "vision", "llava"))
-
 
 # ---- Direct tools: the orchestrator (whichever model is selected) calls
 # these itself, no separate delegation/rerouter step ----
@@ -147,6 +166,38 @@ def write_file(path: str, content: str) -> str:
         return f"[Successfully wrote {len(content)} characters to {path}]"
     except Exception as e:
         return f"[Error writing file {path}: {e}]"
+
+
+@tool
+def list_reference_documents() -> str:
+    """List every plant reference PDF available (id + header only, no file
+    path or content) — call this first when the user asks about a plant unit
+    or topic and you don't already know which document covers it. Once you
+    see which header matches, call get_reference_document_location with its
+    id to get the actual file path, then read_file to open it."""
+    try:
+        resp = httpx.get(f"{AGNI_API_BASE_URL}/reference-documents", timeout=5.0)
+        resp.raise_for_status()
+        docs = resp.json()
+        if not docs:
+            return "[No reference documents are indexed.]"
+        return "\n".join(f"{d['id']}: {d['header']}" for d in docs)
+    except Exception as e:
+        return f"[Error listing reference documents: {e}]"
+
+
+@tool
+def get_reference_document_location(doc_id: int) -> str:
+    """Resolve a reference document id (from list_reference_documents) to its
+    absolute file path. Pass that path to read_file to open it."""
+    try:
+        resp = httpx.get(f"{AGNI_API_BASE_URL}/reference-documents/{doc_id}", timeout=5.0)
+        if resp.status_code == 404:
+            return f"[Error: no reference document with id {doc_id}. Call list_reference_documents to see valid ids.]"
+        resp.raise_for_status()
+        return resp.json()["location"]
+    except Exception as e:
+        return f"[Error resolving reference document {doc_id}: {e}]"
 
 
 @tool
@@ -234,6 +285,35 @@ _LATEX_CLEANUP_PATTERNS = [
     (re.compile(r"\\geq"), ">="),
     (re.compile(r"\\infty"), "infinity"),
 ]
+
+
+# A weak local model (e.g. llama3.2:3b) sometimes echoes the chat
+# template's own tool-result wrapper back into its final answer instead of
+# just reading the result silently and answering in plain prose — e.g.
+# quoting the whole <tool_response>...</tool_response> block (tags AND the
+# raw tool payload inside) verbatim before its actual reply. That's always
+# internal plumbing, never something the user asked to see, so the entire
+# block is dropped rather than just unwrapping the tags. Ollama/Llama-style
+# templates use <tool_response>; some other templates use <tool_result> —
+# match either, tolerating the model's own reply also being on the same
+# line as a stray closing tag.
+_TOOL_RESPONSE_LEAK_RE = re.compile(
+    r"<(tool_response|tool_result)>.*?</\1>",
+    re.IGNORECASE | re.DOTALL,
+)
+_TOOL_RESPONSE_LEAK_TAG_RE = re.compile(r"</?tool_response>|</?tool_result>", re.IGNORECASE)
+
+
+def _strip_leaked_tool_tags(text: str) -> str:
+    """Remove a leaked <tool_response>/<tool_result> block (tags + the raw
+    tool payload the model quoted inside them) from the model's own output.
+    Falls back to stripping just a stray unmatched tag (e.g. only the
+    opening tag leaked, no closing tag) if no full block is found."""
+    if not isinstance(text, str) or not text:
+        return text
+    cleaned = _TOOL_RESPONSE_LEAK_RE.sub("", text)
+    cleaned = _TOOL_RESPONSE_LEAK_TAG_RE.sub("", cleaned)
+    return cleaned.strip()
 
 
 def _strip_latex(text: str) -> str:
@@ -329,6 +409,8 @@ def analyze_image(image_path: str, query: str = "Describe what you see.") -> str
 tools = [
     read_file,
     write_file,
+    list_reference_documents,
+    get_reference_document_location,
     rag_search,
     pdf_tool,
     read_pdf_tool,
@@ -1105,7 +1187,12 @@ def chatbot_node(state: OrchestratorState, config: Optional[RunnableConfig] = No
         # Safety net: strip any stray LaTeX the orchestrator re-quoted from
         # a tool result (e.g. analyze_image output) — the chat UI has no
         # math rendering, so this only ever shows up as literal backslashes.
-        response = _with_content(response, _strip_latex(response.content))
+        # Also strip a leaked <tool_response>/<tool_result> block — a weak
+        # local model sometimes echoes the tool payload back verbatim inside
+        # the chat template's own wrapper before giving its actual reply.
+        cleaned = _strip_leaked_tool_tags(response.content)
+        cleaned = _strip_latex(cleaned)
+        response = _with_content(response, cleaned)
 
     if has_tool_calls:
         names = [c.get("name") for c in response.tool_calls]

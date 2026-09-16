@@ -9,7 +9,7 @@ from typing import List, Optional, Tuple
 import docx
 from docx import Document
 from docx.enum.table import WD_ALIGN_VERTICAL, WD_TABLE_ALIGNMENT
-from docx.enum.text import WD_ALIGN_PARAGRAPH
+from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_TAB_ALIGNMENT
 from docx.oxml import OxmlElement, parse_xml
 from docx.oxml.ns import nsdecls, qn
 from docx.shared import Inches, Pt, RGBColor
@@ -27,6 +27,8 @@ COLOR_BODY_TEXT = RGBColor(31, 41, 55)         # #1F2937 (Body Text)
 COLOR_WHITE = RGBColor(255, 255, 255)          # #FFFFFF (Header text)
 
 HEX_HEADER_BG = "1E3A8A"                       # Navy
+HEX_HEADER_ACCENT = "2563EB"                   # Blue accent stripe under the title banner
+COLOR_LIGHT_BLUE = RGBColor(199, 216, 250)     # Banner subtext on navy
 HEX_ALT_ROW_BG = "F8FAFC"                      # Light Slate Tint
 HEX_CALLOUT_BG = "F1F5F9"                      # Light Gray Callout Tint
 HEX_BORDER_COLOR = "CBD5E1"                    # Slate Border
@@ -243,6 +245,68 @@ def _render_callout_box(doc: Document, quote_lines: List[str]):
     p_after.paragraph_format.space_after = Pt(6)
 
 
+def _clear_cell_borders(cell):
+    tc_pr = cell._tc.get_or_add_tcPr()
+    borders = parse_xml(
+        f'<w:tcBorders {nsdecls("w")}>'
+        f'<w:top w:val="nil"/><w:bottom w:val="nil"/>'
+        f'<w:left w:val="nil"/><w:right w:val="nil"/>'
+        f'</w:tcBorders>'
+    )
+    tc_pr.append(borders)
+
+
+def _set_cell_bottom_accent(cell, color=HEX_HEADER_ACCENT, sz="28"):
+    """A single colored bottom border — used under the title banner as a
+    thin accent stripe, matching the PDF/PPTX generators' accent bar."""
+    tc_pr = cell._tc.get_or_add_tcPr()
+    borders = parse_xml(
+        f'<w:tcBorders {nsdecls("w")}>'
+        f'<w:bottom w:val="single" w:sz="{sz}" w:space="0" w:color="{color}"/>'
+        f'</w:tcBorders>'
+    )
+    tc_pr.append(borders)
+
+
+def _add_page_number_field(paragraph):
+    """Inserts a live "Page X of Y" field (not static text) into a footer
+    paragraph — the standard fldChar/instrText sequence python-docx has no
+    high-level API for."""
+    def _field(instr):
+        run = OxmlElement("w:r")
+        fld_begin = OxmlElement("w:fldChar")
+        fld_begin.set(qn("w:fldCharType"), "begin")
+        instr_text = OxmlElement("w:instrText")
+        instr_text.set(qn("xml:space"), "preserve")
+        instr_text.text = instr
+        fld_sep = OxmlElement("w:fldChar")
+        fld_sep.set(qn("w:fldCharType"), "separate")
+        fld_end = OxmlElement("w:fldChar")
+        fld_end.set(qn("w:fldCharType"), "end")
+        run.append(fld_begin)
+        run.append(instr_text)
+        run.append(fld_sep)
+        run.append(fld_end)
+        return run
+
+    r1 = paragraph.add_run()
+    r1.font.name = FONT_FAMILY
+    r1.font.size = Pt(8.5)
+    r1.font.color.rgb = COLOR_MUTED_SLATE
+    r1._r.append(_field(" PAGE "))
+
+    r2 = paragraph.add_run(" of ")
+    r2.font.name = FONT_FAMILY
+    r2.font.size = Pt(8.5)
+    r2.font.color.rgb = COLOR_MUTED_SLATE
+
+    r3 = paragraph.add_run()
+    r3.font.name = FONT_FAMILY
+    r3.font.size = Pt(8.5)
+    r3.font.color.rgb = COLOR_MUTED_SLATE
+    r3._r.append(_field(" NUMPAGES "))
+
+
 def docx_write(
     title: str,
     content: str,
@@ -277,55 +341,72 @@ def docx_write(
     doc = Document()
 
     # 1. Page Margins Setup
-    for section in doc.sections:
-        section.top_margin = Inches(1.0)
-        section.bottom_margin = Inches(1.0)
-        section.left_margin = Inches(1.0)
-        section.right_margin = Inches(1.0)
+    for s in doc.sections:
+        s.top_margin = Inches(1.0)
+        s.bottom_margin = Inches(1.0)
+        s.left_margin = Inches(1.0)
+        s.right_margin = Inches(1.0)
+    section = doc.sections[0]
 
-    # 2. Header / Title Block
+    # 2. Header / Title Block — a full-width colored banner (built from a
+    # single-cell, border-free table, the same shading trick used for the
+    # callout/code blocks below) instead of plain text at the top of a white
+    # page, so the document reads as designed rather than a text dump. Same
+    # navy/blue palette as pdf_generate.py and pptx_generate.py.
+    content_width = section.page_width - section.left_margin - section.right_margin
+    banner = doc.add_table(rows=1, cols=1)
+    banner.autofit = False
+    banner.columns[0].width = content_width
+    banner_cell = banner.rows[0].cells[0]
+    banner_cell.width = content_width
+    _set_cell_shading(banner_cell, HEX_HEADER_BG)
+    _set_cell_margins(banner_cell, top=200, bottom=220, left=200, right=200)
+    _clear_cell_borders(banner_cell)
+    _set_cell_bottom_accent(banner_cell)
+
+    banner_p = banner_cell.paragraphs[0]
     if organization:
-        org_p = doc.add_paragraph()
-        org_p.alignment = WD_ALIGN_PARAGRAPH.LEFT
-        org_p.paragraph_format.space_before = Pt(0)
-        org_p.paragraph_format.space_after = Pt(2)
-        org_run = org_p.add_run(organization.upper())
+        org_run = banner_p.add_run(organization.upper())
         org_run.font.name = FONT_FAMILY
         org_run.font.size = Pt(8.5)
         org_run.font.bold = True
-        org_run.font.color.rgb = COLOR_MUTED_SLATE
+        org_run.font.color.rgb = COLOR_LIGHT_BLUE
 
-    title_p = doc.add_paragraph()
+    title_p = banner_cell.add_paragraph()
     title_p.paragraph_format.space_before = Pt(4)
     title_p.paragraph_format.space_after = Pt(4)
-    title_p.paragraph_format.keep_with_next = True
     title_run = title_p.add_run(title)
     title_run.font.name = FONT_FAMILY
-    title_run.font.size = Pt(22)
+    title_run.font.size = Pt(24)
     title_run.font.bold = True
-    title_run.font.color.rgb = COLOR_PRIMARY_NAVY
+    title_run.font.color.rgb = COLOR_WHITE
 
-    meta_p = doc.add_paragraph()
+    meta_p = banner_cell.add_paragraph()
     meta_p.paragraph_format.space_before = Pt(0)
-    meta_p.paragraph_format.space_after = Pt(14)
-    meta_p.paragraph_format.keep_with_next = True
+    meta_p.paragraph_format.space_after = Pt(0)
     ts_str = datetime.now(timezone.utc).strftime("%B %d, %Y - %H:%M UTC")
     meta_text = f"Generated: {ts_str}  |  Confidential On-Premise Document"
     if subtitle:
         meta_text = f"{subtitle}  |  {meta_text}"
     meta_run = meta_p.add_run(meta_text)
     meta_run.font.name = FONT_FAMILY
-    meta_run.font.size = Pt(9.0)
+    meta_run.font.size = Pt(9.5)
     meta_run.font.italic = True
-    meta_run.font.color.rgb = COLOR_MUTED_SLATE
+    meta_run.font.color.rgb = COLOR_LIGHT_BLUE
 
-    # Subtle divider below header
-    hr_p = doc.add_paragraph()
-    hr_p.paragraph_format.space_before = Pt(0)
-    hr_p.paragraph_format.space_after = Pt(12)
-    hr_run = hr_p.add_run("―" * 48)
-    hr_run.font.size = Pt(8)
-    hr_run.font.color.rgb = RGBColor(203, 213, 225)
+    spacer_p = doc.add_paragraph()
+    spacer_p.paragraph_format.space_before = Pt(0)
+    spacer_p.paragraph_format.space_after = Pt(14)
+
+    # 2b. Footer — page-numbered, present on every page, so a multi-page
+    # report doesn't just trail off with no sense of length/position.
+    footer_p = section.footer.paragraphs[0]
+    footer_p.paragraph_format.tab_stops.add_tab_stop(content_width, WD_TAB_ALIGNMENT.RIGHT)
+    footer_left = footer_p.add_run(f"{organization.upper()} — Confidential On-Premise Document\tPage ")
+    footer_left.font.name = FONT_FAMILY
+    footer_left.font.size = Pt(8.5)
+    footer_left.font.color.rgb = COLOR_MUTED_SLATE
+    _add_page_number_field(footer_p)
 
     # 3. Parse Markdown Body
     lines = content.splitlines()

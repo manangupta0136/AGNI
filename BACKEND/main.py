@@ -118,6 +118,7 @@ try:
         MemoryRepository,
         ChatRepository,
         DocumentRepository,
+        ReferenceDocumentRepository,
         AuditRepository,
         AgentRepository,
     )
@@ -1101,7 +1102,10 @@ async def handle_chat_stream(payload: ChatMessagePayload, request: Request):
     )
 
 @app.post("/api/v1/transcribe", tags=["Voice"])
-async def transcribe(file: UploadFile = File(...)):
+async def transcribe(
+    file: UploadFile = File(...),
+    fast: bool = Query(False, description="Use the smaller/quicker model for live-fill transcription while still recording."),
+):
     """Speech-to-text endpoint backed by voice_command/stt.py."""
     if transcribe_audio is None:
         raise HTTPException(status_code=503, detail="Speech-to-text module unavailable.")
@@ -1113,7 +1117,7 @@ async def transcribe(file: UploadFile = File(...)):
         f.write(contents)
 
     try:
-        text = await asyncio.to_thread(transcribe_audio, str(tmp_path))
+        text = await asyncio.to_thread(transcribe_audio, str(tmp_path), fast)
     except TranscriberBusyError:
         # Another transcription (the previous interim/final call) is still
         # running — fail fast instead of queuing behind it, so the caller
@@ -1138,6 +1142,35 @@ async def speak(payload: dict):
 
     audio_bytes = await asyncio.to_thread(synthesize_speech, text)
     return Response(content=audio_bytes, media_type="audio/wav")
+
+
+@app.get("/api/v1/reference-documents", tags=["Reference Documents"])
+async def list_reference_documents():
+    """
+    Returns every plant reference document's id + header (no file path) —
+    the orchestrator calls this first, has the model pick the header it
+    needs, then calls /api/v1/reference-documents/{id} to resolve just that
+    one to a location, instead of loading every document's contents up front.
+    """
+    if not database_available:
+        raise HTTPException(status_code=503, detail="Database unavailable.")
+    factory = get_session_factory()
+    async with factory() as session:
+        docs = await ReferenceDocumentRepository.list_all(session)
+        return [{"id": d.id, "header": d.header} for d in docs]
+
+
+@app.get("/api/v1/reference-documents/{doc_id}", tags=["Reference Documents"])
+async def get_reference_document(doc_id: int):
+    """Resolve one reference document id (from /api/v1/reference-documents) to its on-disk location."""
+    if not database_available:
+        raise HTTPException(status_code=503, detail="Database unavailable.")
+    factory = get_session_factory()
+    async with factory() as session:
+        doc = await ReferenceDocumentRepository.get_by_id(session, doc_id)
+        if doc is None:
+            raise HTTPException(status_code=404, detail=f"No reference document with id {doc_id}.")
+        return {"id": doc.id, "header": doc.header, "location": doc.location}
 
 
 @app.get("/api/v1/documents", tags=["Documents"])
